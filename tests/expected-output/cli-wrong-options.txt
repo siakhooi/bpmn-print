@@ -1,0 +1,2 @@
+usage: bpmn-print [-h] [-v]
+bpmn-print: error: unrecognized arguments: -p

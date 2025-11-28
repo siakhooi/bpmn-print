@@ -1,0 +1,7 @@
+usage: bpmn-print [-h] [-v]
+
+Print BPMN workflow for developer readings
+
+options:
+  -h, --help     show this help message and exit
+  -v, --version  show program's version number and exit
