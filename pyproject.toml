@@ -1,6 +1,6 @@
 [project]
 name = "bpmn_print"
-version = "0.0.1"
+version = "0.0.2"
 description = "Print BPMN workflow for developer readings"
 authors = [
     {name = "Siak Hooi",email = "siakhooi@gmail.com"}
@@ -15,7 +15,7 @@ classifiers = [
 
 license = {text = "MIT"}
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = [
 ]
 
