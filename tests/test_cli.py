@@ -45,7 +45,7 @@ def test_run_show_version(monkeypatch, capsys, option_version):
 def test_run_wrong_options(monkeypatch, capsys, options):
     monkeypatch.setattr(
         "sys.argv",
-        ["bpmn-print"] + options,
+        ["bpmn-print", options],
     )
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
@@ -53,6 +53,10 @@ def test_run_wrong_options(monkeypatch, capsys, options):
     assert pytest_wrapped_e.type is SystemExit
     assert pytest_wrapped_e.value.code == 2
 
+    with open("tests/expected-output/cli-wrong-options.txt", "r") as f:
+        expected_output = f.read()
+
     captured = capsys.readouterr()
-    assert "usage: bpmn-print [-h] [-v]" in captured.err
-    assert "bpmn-print: error: unrecognized arguments:" in captured.err
+    assert captured.err == expected_output
+    # assert "usage: bpmn-print [-h] [-v]" in captured.err
+    # assert "bpmn-print: error: unrecognized arguments:" in captured.err

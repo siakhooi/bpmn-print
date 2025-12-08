@@ -1,6 +1,10 @@
-usage: bpmn-print [-h] [-v]
+usage: bpmn-print [-h] [-v] input_folder output_folder
 
 Print BPMN workflow for developer readings
+
+positional arguments:
+  input_folder   input folder
+  output_folder  output folder
 
 options:
   -h, --help     show this help message and exit

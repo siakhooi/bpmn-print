@@ -1,2 +1,2 @@
-usage: bpmn-print [-h] [-v]
-bpmn-print: error: unrecognized arguments: -p
+usage: bpmn-print [-h] [-v] input_folder output_folder
+bpmn-print: error: the following arguments are required: output_folder

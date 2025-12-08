@@ -15,8 +15,11 @@ classifiers = [
 
 license = {text = "MIT"}
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<4.0"
 dependencies = [
+    "lxml (>=6.0.2,<7.0.0)",
+    "reportlab (>=4.4.5,<5.0.0)",
+    "graphviz (>=0.21,<0.22)"
 ]
 
 [project.urls]
