@@ -1,4 +1,6 @@
 import os
+
+from bpmn_print import console
 from . import bpmn_diagram
 from . import bpmn_data
 from . import pdf
@@ -34,4 +36,4 @@ def pretty_print(input_folder: str, output_folder: str) -> None:
             src = os.path.join(input_folder, file)
             dest = os.path.join(output_folder, file.replace(".bpmn", ".pdf"))
             convert_bpmn_to_pdf(src, dest)
-    print("Done.")
+    console.println("Done.")
