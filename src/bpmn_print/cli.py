@@ -1,12 +1,7 @@
 import argparse
-import sys
 from importlib.metadata import version
 from bpmn_print.bpmn_pretty_print import pretty_print
-
-
-def print_to_stderr_and_exit(e: Exception, exit_code: int) -> None:
-    print(f"Error: {e}", file=sys.stderr)
-    exit(exit_code)
+import bpmn_print.console as console
 
 
 def run() -> None:
@@ -25,11 +20,13 @@ def run() -> None:
     args = parser.parse_args()
 
     if not args.input_folder or not args.output_folder:
-        print_to_stderr_and_exit(
-            Exception("Both input_folder and output_folder are required."), 1
+        console.error(
+            Exception("Both input_folder and output_folder are required.")
         )
+        exit(1)
 
     try:
         pretty_print(args.input_folder, args.output_folder)
     except Exception as e:
-        print_to_stderr_and_exit(e, 1)
+        console.error(e)
+        exit(2)
