@@ -1,4 +1,4 @@
-usage: bpmn-print [-h] [-v] input_folder output_folder
+usage: bpmn-print [-h] [-v] [-k] input_folder output_folder
 
 Print BPMN workflow for developer readings
 
@@ -9,3 +9,4 @@ positional arguments:
 options:
   -h, --help     show this help message and exit
   -v, --version  show program's version number and exit
+  -k, --keep     keep PNG files after PDF generation

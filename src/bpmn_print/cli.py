@@ -14,6 +14,12 @@ def run() -> None:
     parser.add_argument(
         "-v", "--version", action="version", version=f"%(prog)s {__version__}"
     )
+    parser.add_argument(
+        "-k",
+        "--keep",
+        action="store_true",
+        help="keep PNG files after PDF generation",
+    )
     parser.add_argument("input_folder", help="input folder")
     parser.add_argument("output_folder", help="output folder")
 
@@ -26,7 +32,7 @@ def run() -> None:
         exit(1)
 
     try:
-        pretty_print(args.input_folder, args.output_folder)
+        pretty_print(args.input_folder, args.output_folder, args.keep)
     except Exception as e:
         console.error(e)
         exit(2)
