@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from lxml import etree
 
 # BPMN namespace constants
@@ -6,6 +7,45 @@ BPMN_NS = {
     "bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"
 }
 CAMUNDA_CLASS_ATTR = '{http://camunda.org/schema/1.0/bpmn}class'
+
+
+@dataclass
+class Node:
+    """Represents a BPMN node (callActivity or serviceTask)."""
+    name: str
+    type: str
+    target: str
+
+    def __iter__(self):
+        """Allow tuple unpacking for backward compatibility."""
+        return iter((self.name, self.type, self.target))
+
+
+@dataclass
+class Parameter:
+    """Represents an input parameter."""
+    node_name: str
+    param_name: str
+    value: str
+    has_script: bool
+
+    def __iter__(self):
+        """Allow tuple unpacking for backward compatibility."""
+        return iter((
+            self.node_name, self.param_name, self.value, self.has_script
+        ))
+
+
+@dataclass
+class Script:
+    """Represents a JEXL script."""
+    text: str
+    node_name: str
+    param_name: str
+
+    def __iter__(self):
+        """Allow tuple unpacking for backward compatibility."""
+        return iter((self.text, self.node_name, self.param_name))
 
 
 def find_parent_with_id(element):
@@ -32,7 +72,6 @@ def extract(xml_file):
         id_to_name[elem_id] = elem_name
 
     # Collect node information (callActivity and serviceTask)
-    # List of tuples: (node_name, node_type, called_element_or_class)
     nodes = []
 
     # Find all callActivity elements
@@ -41,7 +80,7 @@ def extract(xml_file):
             'name', call_activity.get('id', 'unknown')
         )
         called_element = call_activity.get('calledElement', '')
-        nodes.append((node_name, 'callActivity', called_element))
+        nodes.append(Node(node_name, 'callActivity', called_element))
 
     # Find all serviceTask elements
     for service_task in root.findall(".//bpmn:serviceTask", BPMN_NS):
@@ -51,11 +90,9 @@ def extract(xml_file):
         class_name = service_task.get(CAMUNDA_CLASS_ATTR, '')
         # Simplify class name - show only the last part
         simple_class = class_name.split('.')[-1] if class_name else ''
-        nodes.append((node_name, 'serviceTask', simple_class))
+        nodes.append(Node(node_name, 'serviceTask', simple_class))
 
-    # List of tuples: (node_name, param_name, value, has_script)
     parameters = []
-    # List of tuples: (script_text, node_name, parameter_name)
     scripts = []
 
     # All script elements
@@ -63,7 +100,7 @@ def extract(xml_file):
         node_id = find_parent_with_id(scr)
         node_name = id_to_name.get(node_id, node_id)
         param_name = scr.getparent().get('name', 'script')
-        scripts.append((scr.text or "", node_name, param_name))
+        scripts.append(Script(scr.text or "", node_name, param_name))
 
     # inputOutput mappings - collect all inputParameters
     for inp in root.findall(".//camunda:inputParameter", BPMN_NS):
@@ -76,21 +113,25 @@ def extract(xml_file):
         if script_elem is not None:
             # Has script - will be shown in scripts section
             parameters.append(
-                (node_name, param_name, '[See JEXL Scripts]', True)
+                Parameter(node_name, param_name, '[See JEXL Scripts]', True)
             )
         elif inp.text:
             # Has text content
             if "#{ " in inp.text or "${ " in inp.text:
                 # JEXL expression - add to scripts
-                scripts.append((inp.text, node_name, param_name))
+                scripts.append(Script(inp.text, node_name, param_name))
                 parameters.append(
-                    (node_name, param_name, '[See JEXL Scripts]', True)
+                    Parameter(
+                        node_name, param_name, '[See JEXL Scripts]', True
+                    )
                 )
             else:
                 # Simple value
-                parameters.append((node_name, param_name, inp.text, False))
+                parameters.append(
+                    Parameter(node_name, param_name, inp.text, False)
+                )
         else:
             # Empty or other
-            parameters.append((node_name, param_name, '', False))
+            parameters.append(Parameter(node_name, param_name, '', False))
 
     return nodes, parameters, scripts
