@@ -1,5 +1,8 @@
 from dataclasses import dataclass
+from typing import Dict, List, Tuple
+
 from lxml import etree
+from lxml.etree import _Element
 
 # BPMN namespace constants
 BPMN_NS = {
@@ -48,7 +51,7 @@ class Script:
         return iter((self.text, self.node_name, self.param_name))
 
 
-def find_parent_with_id(element):
+def find_parent_with_id(element: _Element) -> str:
     """Traverse up the tree to find the first ancestor with an
     'id' attribute
     """
@@ -60,7 +63,7 @@ def find_parent_with_id(element):
     return 'unknown'
 
 
-def _build_id_to_name_mapping(root):
+def _build_id_to_name_mapping(root: _Element) -> Dict[str, str]:
     """Build a mapping from element IDs to their names."""
     id_to_name = {}
     for elem in root.findall(".//*[@id]"):
@@ -70,7 +73,7 @@ def _build_id_to_name_mapping(root):
     return id_to_name
 
 
-def _extract_call_activities(root):
+def _extract_call_activities(root: _Element) -> List[Node]:
     """Extract all callActivity nodes from the BPMN XML."""
     nodes = []
     for call_activity in root.findall(".//bpmn:callActivity", BPMN_NS):
@@ -82,7 +85,7 @@ def _extract_call_activities(root):
     return nodes
 
 
-def _extract_service_tasks(root):
+def _extract_service_tasks(root: _Element) -> List[Node]:
     """Extract all serviceTask nodes from the BPMN XML."""
     nodes = []
     for service_task in root.findall(".//bpmn:serviceTask", BPMN_NS):
@@ -96,7 +99,9 @@ def _extract_service_tasks(root):
     return nodes
 
 
-def _extract_script_elements(root, id_to_name):
+def _extract_script_elements(
+    root: _Element, id_to_name: Dict[str, str]
+) -> List[Script]:
     """Extract standalone script elements from the BPMN XML."""
     scripts = []
     for scr in root.findall(".//camunda:script", BPMN_NS):
@@ -107,7 +112,9 @@ def _extract_script_elements(root, id_to_name):
     return scripts
 
 
-def _extract_input_parameters(root, id_to_name):
+def _extract_input_parameters(
+    root: _Element, id_to_name: Dict[str, str]
+) -> Tuple[List[Parameter], List[Script]]:
     """Extract input parameters and their associated scripts.
 
     Returns:
@@ -150,7 +157,7 @@ def _extract_input_parameters(root, id_to_name):
     return parameters, scripts
 
 
-def extract(xml_file):
+def extract(xml_file: str) -> Tuple[List[Node], List[Parameter], List[Script]]:
     """Extract BPMN data from an XML file.
 
     Args:
