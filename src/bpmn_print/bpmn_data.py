@@ -63,6 +63,19 @@ def find_parent_with_id(element: _Element) -> str:
     return 'unknown'
 
 
+def _get_element_name(element: _Element, default: str = 'unknown') -> str:
+    """Get the name of an element, falling back to its ID or a default.
+
+    Args:
+        element: The XML element to get the name from
+        default: Default value if neither name nor id exists
+
+    Returns:
+        The element's name, id, or default value
+    """
+    return element.get('name', element.get('id', default))
+
+
 def _build_id_to_name_mapping(root: _Element) -> Dict[str, str]:
     """Build a mapping from element IDs to their names."""
     id_to_name = {}
@@ -77,9 +90,7 @@ def _extract_call_activities(root: _Element) -> List[Node]:
     """Extract all callActivity nodes from the BPMN XML."""
     nodes = []
     for call_activity in root.findall(".//bpmn:callActivity", BPMN_NS):
-        node_name = call_activity.get(
-            'name', call_activity.get('id', 'unknown')
-        )
+        node_name = _get_element_name(call_activity)
         called_element = call_activity.get('calledElement', '')
         nodes.append(Node(node_name, 'callActivity', called_element))
     return nodes
@@ -89,9 +100,7 @@ def _extract_service_tasks(root: _Element) -> List[Node]:
     """Extract all serviceTask nodes from the BPMN XML."""
     nodes = []
     for service_task in root.findall(".//bpmn:serviceTask", BPMN_NS):
-        node_name = service_task.get(
-            'name', service_task.get('id', 'unknown')
-        )
+        node_name = _get_element_name(service_task)
         class_name = service_task.get(CAMUNDA_CLASS_ATTR, '')
         # Simplify class name - show only the last part
         simple_class = class_name.split('.')[-1] if class_name else ''
