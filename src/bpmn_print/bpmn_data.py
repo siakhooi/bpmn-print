@@ -1,13 +1,16 @@
 from lxml import etree
 
+# BPMN namespace constants
+BPMN_NS = {
+    "camunda": "http://camunda.org/schema/1.0/bpmn",
+    "bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"
+}
+CAMUNDA_CLASS_ATTR = '{http://camunda.org/schema/1.0/bpmn}class'
+
 
 def extract(xml_file):
     tree = etree.parse(xml_file)
     root = tree.getroot()
-    ns = {
-        "camunda": "http://camunda.org/schema/1.0/bpmn",
-        "bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"
-    }
 
     def find_parent_with_id(element):
         """Traverse up the tree to find the first ancestor with an
@@ -32,7 +35,7 @@ def extract(xml_file):
     nodes = []
 
     # Find all callActivity elements
-    for call_activity in root.findall(".//bpmn:callActivity", ns):
+    for call_activity in root.findall(".//bpmn:callActivity", BPMN_NS):
         node_name = call_activity.get(
             'name', call_activity.get('id', 'unknown')
         )
@@ -40,13 +43,11 @@ def extract(xml_file):
         nodes.append((node_name, 'callActivity', called_element))
 
     # Find all serviceTask elements
-    for service_task in root.findall(".//bpmn:serviceTask", ns):
+    for service_task in root.findall(".//bpmn:serviceTask", BPMN_NS):
         node_name = service_task.get(
             'name', service_task.get('id', 'unknown')
         )
-        class_name = service_task.get(
-            '{http://camunda.org/schema/1.0/bpmn}class', ''
-        )
+        class_name = service_task.get(CAMUNDA_CLASS_ATTR, '')
         # Simplify class name - show only the last part
         simple_class = class_name.split('.')[-1] if class_name else ''
         nodes.append((node_name, 'serviceTask', simple_class))
@@ -57,20 +58,20 @@ def extract(xml_file):
     scripts = []
 
     # All script elements
-    for scr in root.findall(".//camunda:script", ns):
+    for scr in root.findall(".//camunda:script", BPMN_NS):
         node_id = find_parent_with_id(scr)
         node_name = id_to_name.get(node_id, node_id)
         param_name = scr.getparent().get('name', 'script')
         scripts.append((scr.text or "", node_name, param_name))
 
     # inputOutput mappings - collect all inputParameters
-    for inp in root.findall(".//camunda:inputParameter", ns):
+    for inp in root.findall(".//camunda:inputParameter", BPMN_NS):
         node_id = find_parent_with_id(inp)
         node_name = id_to_name.get(node_id, node_id)
         param_name = inp.get('name', 'inputParameter')
 
         # Check if it contains a script element
-        script_elem = inp.find(".//camunda:script", ns)
+        script_elem = inp.find(".//camunda:script", BPMN_NS)
         if script_elem is not None:
             # Has script - will be shown in scripts section
             parameters.append(
