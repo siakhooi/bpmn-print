@@ -60,29 +60,31 @@ def find_parent_with_id(element):
     return 'unknown'
 
 
-def extract(xml_file):
-    tree = etree.parse(xml_file)
-    root = tree.getroot()
-
-    # Create ID to name mapping for all elements
+def _build_id_to_name_mapping(root):
+    """Build a mapping from element IDs to their names."""
     id_to_name = {}
     for elem in root.findall(".//*[@id]"):
         elem_id = elem.get('id')
         elem_name = elem.get('name', elem_id)
         id_to_name[elem_id] = elem_name
+    return id_to_name
 
-    # Collect node information (callActivity and serviceTask)
+
+def _extract_call_activities(root):
+    """Extract all callActivity nodes from the BPMN XML."""
     nodes = []
-
-    # Find all callActivity elements
     for call_activity in root.findall(".//bpmn:callActivity", BPMN_NS):
         node_name = call_activity.get(
             'name', call_activity.get('id', 'unknown')
         )
         called_element = call_activity.get('calledElement', '')
         nodes.append(Node(node_name, 'callActivity', called_element))
+    return nodes
 
-    # Find all serviceTask elements
+
+def _extract_service_tasks(root):
+    """Extract all serviceTask nodes from the BPMN XML."""
+    nodes = []
     for service_task in root.findall(".//bpmn:serviceTask", BPMN_NS):
         node_name = service_task.get(
             'name', service_task.get('id', 'unknown')
@@ -91,18 +93,29 @@ def extract(xml_file):
         # Simplify class name - show only the last part
         simple_class = class_name.split('.')[-1] if class_name else ''
         nodes.append(Node(node_name, 'serviceTask', simple_class))
+    return nodes
 
-    parameters = []
+
+def _extract_script_elements(root, id_to_name):
+    """Extract standalone script elements from the BPMN XML."""
     scripts = []
-
-    # All script elements
     for scr in root.findall(".//camunda:script", BPMN_NS):
         node_id = find_parent_with_id(scr)
         node_name = id_to_name.get(node_id, node_id)
         param_name = scr.getparent().get('name', 'script')
         scripts.append(Script(scr.text or "", node_name, param_name))
+    return scripts
 
-    # inputOutput mappings - collect all inputParameters
+
+def _extract_input_parameters(root, id_to_name):
+    """Extract input parameters and their associated scripts.
+
+    Returns:
+        tuple: (parameters, scripts) lists
+    """
+    parameters = []
+    scripts = []
+
     for inp in root.findall(".//camunda:inputParameter", BPMN_NS):
         node_id = find_parent_with_id(inp)
         node_name = id_to_name.get(node_id, node_id)
@@ -133,5 +146,33 @@ def extract(xml_file):
         else:
             # Empty or other
             parameters.append(Parameter(node_name, param_name, '', False))
+
+    return parameters, scripts
+
+
+def extract(xml_file):
+    """Extract BPMN data from an XML file.
+
+    Args:
+        xml_file: Path to the BPMN XML file
+
+    Returns:
+        tuple: (nodes, parameters, scripts) containing extracted data
+    """
+    tree = etree.parse(xml_file)
+    root = tree.getroot()
+
+    # Build ID to name mapping
+    id_to_name = _build_id_to_name_mapping(root)
+
+    # Extract nodes
+    nodes = []
+    nodes.extend(_extract_call_activities(root))
+    nodes.extend(_extract_service_tasks(root))
+
+    # Extract scripts and parameters
+    scripts = _extract_script_elements(root, id_to_name)
+    parameters, param_scripts = _extract_input_parameters(root, id_to_name)
+    scripts.extend(param_scripts)
 
     return nodes, parameters, scripts
