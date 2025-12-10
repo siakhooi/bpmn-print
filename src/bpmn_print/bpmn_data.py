@@ -8,20 +8,21 @@ BPMN_NS = {
 CAMUNDA_CLASS_ATTR = '{http://camunda.org/schema/1.0/bpmn}class'
 
 
+def find_parent_with_id(element):
+    """Traverse up the tree to find the first ancestor with an
+    'id' attribute
+    """
+    current = element
+    while current is not None:
+        if 'id' in current.attrib:
+            return current.get('id')
+        current = current.getparent()
+    return 'unknown'
+
+
 def extract(xml_file):
     tree = etree.parse(xml_file)
     root = tree.getroot()
-
-    def find_parent_with_id(element):
-        """Traverse up the tree to find the first ancestor with an
-        'id' attribute
-        """
-        current = element
-        while current is not None:
-            if 'id' in current.attrib:
-                return current.get('id')
-            current = current.getparent()
-        return 'unknown'
 
     # Create ID to name mapping for all elements
     id_to_name = {}
