@@ -1,15 +1,16 @@
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from lxml import etree
-from lxml.etree import _Element
+from lxml.etree import _Element, XMLSyntaxError
 
 # BPMN namespace constants
 BPMN_NS = {
     "camunda": "http://camunda.org/schema/1.0/bpmn",
     "bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"
 }
-CAMUNDA_CLASS_ATTR = '{http://camunda.org/schema/1.0/bpmn}class'
+CAMUNDA_NS_URI = BPMN_NS["camunda"]
+CAMUNDA_CLASS_ATTR = f'{{{CAMUNDA_NS_URI}}}class'
 
 UNKNOWN_VALUE = 'unknown'
 DEFAULT_SCRIPT_NAME = 'script'
@@ -58,6 +59,23 @@ class Script:
     def __iter__(self):
         """Allow tuple unpacking for backward compatibility."""
         return iter((self.text, self.node_name, self.param_name))
+
+
+@dataclass
+class BpmnExtractResult:
+    """Result of BPMN data extraction.
+
+    Contains all nodes, parameters, and scripts extracted from a BPMN XML file.
+    This dataclass supports tuple unpacking for backward compatibility:
+        nodes, parameters, scripts = extract(xml_file)
+    """
+    nodes: List[Node]
+    parameters: List[Parameter]
+    scripts: List[Script]
+
+    def __iter__(self):
+        """Allow tuple unpacking for backward compatibility."""
+        return iter((self.nodes, self.parameters, self.scripts))
 
 
 def find_parent_with_id(element: _Element) -> str:
@@ -120,6 +138,87 @@ def _build_id_to_name_mapping(root: _Element) -> Dict[str, str]:
     }
 
 
+def _get_node_info(
+    element: _Element, id_to_name: Dict[str, str]
+) -> Tuple[str, str]:
+    """Extract node name and parameter name from an element.
+
+    Args:
+        element: The XML element to extract info from
+        id_to_name: Mapping from element IDs to their names
+
+    Returns:
+        Tuple of (node_name, param_name)
+    """
+    node_id = find_parent_with_id(element)
+    node_name = id_to_name.get(node_id, node_id)
+    return node_name, element.get('name', DEFAULT_PARAM_NAME)
+
+
+def _create_parameter(
+    node_name: str, param_name: str, value: str, has_script: bool
+) -> Parameter:
+    """Create a Parameter instance.
+
+    Args:
+        node_name: Name of the node this parameter belongs to
+        param_name: Name of the parameter
+        value: Parameter value (or placeholder if has_script is True)
+        has_script: Whether this parameter has an associated script
+
+    Returns:
+        A Parameter instance
+    """
+    return Parameter(node_name, param_name, value, has_script)
+
+
+def _process_script_element(
+    script_elem: _Element, node_name: str, param_name: str
+) -> Tuple[Parameter, Optional[Script]]:
+    """Process an input parameter that contains a script element.
+
+    Args:
+        script_elem: The script XML element
+        node_name: Name of the node this parameter belongs to
+        param_name: Name of the parameter
+
+    Returns:
+        Tuple of (Parameter, Script or None). Script is None because
+        standalone script elements are handled separately.
+    """
+    parameter = _create_parameter(
+        node_name, param_name, JEXL_SCRIPT_PLACEHOLDER, True
+    )
+    return parameter, None
+
+
+def _process_text_content(
+    text: str, node_name: str, param_name: str
+) -> Tuple[Parameter, Optional[Script]]:
+    """Process an input parameter with text content.
+
+    Args:
+        text: The text content of the parameter
+        node_name: Name of the node this parameter belongs to
+        param_name: Name of the parameter
+
+    Returns:
+        Tuple of (Parameter, Script or None). Script is included if
+        the text is a JEXL expression.
+    """
+    if _is_jexl_expression(text):
+        # JEXL expression - add to scripts
+        script = Script(text, node_name, param_name)
+        parameter = _create_parameter(
+            node_name, param_name, JEXL_SCRIPT_PLACEHOLDER, True
+        )
+        return parameter, script
+    else:
+        # Simple value
+        parameter = _create_parameter(node_name, param_name, text, False)
+        return parameter, None
+
+
 def _extract_call_activities(root: _Element) -> List[Node]:
     """Extract all callActivity nodes from the BPMN XML."""
     return [
@@ -169,49 +268,58 @@ def _extract_input_parameters(
     scripts = []
 
     for inp in root.findall(".//camunda:inputParameter", BPMN_NS):
-        node_id = find_parent_with_id(inp)
-        node_name = id_to_name.get(node_id, node_id)
-        param_name = inp.get('name', DEFAULT_PARAM_NAME)
+        node_name, param_name = _get_node_info(inp, id_to_name)
 
         # Check if it contains a script element
         script_elem = inp.find(".//camunda:script", BPMN_NS)
         if script_elem is not None:
-            # Has script - will be shown in scripts section
-            parameters.append(
-                Parameter(node_name, param_name, JEXL_SCRIPT_PLACEHOLDER, True)
+            # Has script element - will be shown in scripts section
+            parameter, _ = _process_script_element(
+                script_elem, node_name, param_name
             )
+            parameters.append(parameter)
         elif inp.text:
-            # Has text content
-            if _is_jexl_expression(inp.text):
-                # JEXL expression - add to scripts
-                scripts.append(Script(inp.text, node_name, param_name))
-                parameters.append(
-                    Parameter(
-                        node_name, param_name, JEXL_SCRIPT_PLACEHOLDER, True
-                    )
-                )
-            else:
-                # Simple value
-                parameters.append(
-                    Parameter(node_name, param_name, inp.text, False)
-                )
+            # Has text content - may be JEXL expression or simple value
+            parameter, script = _process_text_content(
+                inp.text, node_name, param_name
+            )
+            parameters.append(parameter)
+            if script is not None:
+                scripts.append(script)
         else:
             # Empty or other
-            parameters.append(Parameter(node_name, param_name, '', False))
+            parameter = _create_parameter(node_name, param_name, '', False)
+            parameters.append(parameter)
 
     return parameters, scripts
 
 
-def extract(xml_file: str) -> Tuple[List[Node], List[Parameter], List[Script]]:
+def extract(xml_file: str) -> BpmnExtractResult:
     """Extract BPMN data from an XML file.
 
     Args:
         xml_file: Path to the BPMN XML file
 
     Returns:
-        tuple: (nodes, parameters, scripts) containing extracted data
+        BpmnExtractResult containing nodes, parameters, and scripts.
+        Supports tuple unpacking: (nodes, parameters, scripts)
+
+    Raises:
+        FileNotFoundError: If the XML file does not exist
+        XMLSyntaxError: If the XML file is malformed or invalid
+        etree.XMLSyntaxError: If the XML cannot be parsed
     """
-    tree = etree.parse(xml_file)
+    try:
+        tree = etree.parse(xml_file)
+    except OSError as e:
+        raise FileNotFoundError(
+            f"BPMN file not found or cannot be read: {xml_file}"
+        ) from e
+    except XMLSyntaxError as e:
+        raise XMLSyntaxError(
+            f"Invalid XML syntax in BPMN file: {xml_file}"
+        ) from e
+
     root = tree.getroot()
 
     # Build ID to name mapping
@@ -227,4 +335,4 @@ def extract(xml_file: str) -> Tuple[List[Node], List[Parameter], List[Script]]:
     parameters, param_scripts = _extract_input_parameters(root, id_to_name)
     scripts.extend(param_scripts)
 
-    return nodes, parameters, scripts
+    return BpmnExtractResult(nodes, parameters, scripts)
