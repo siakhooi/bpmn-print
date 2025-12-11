@@ -127,7 +127,7 @@ def _extract_service_tasks(root: _Element) -> List[Node]:
         node_name = _get_element_name(service_task)
         class_name = service_task.get(CAMUNDA_CLASS_ATTR, '')
         # Simplify class name - show only the last part
-        simple_class = class_name.split('.')[-1] if class_name else ''
+        simple_class = class_name.rsplit('.', 1)[-1] if class_name else ''
         nodes.append(Node(node_name, NODE_TYPE_SERVICE_TASK, simple_class))
     return nodes
 
