@@ -85,6 +85,21 @@ def _get_element_name(element: _Element, default: str = UNKNOWN_VALUE) -> str:
     return element.get('name', element.get('id', default))
 
 
+def _is_jexl_expression(text: str) -> bool:
+    """Check if text contains JEXL expression patterns.
+
+    Args:
+        text: The text to check for JEXL patterns
+
+    Returns:
+        True if text contains JEXL expression markers (#{ or ${)
+    """
+    JEXL_PATTERN_HASH = '#{ '
+    JEXL_PATTERN_DOLLAR = '${ '
+
+    return JEXL_PATTERN_HASH in text or JEXL_PATTERN_DOLLAR in text
+
+
 def _build_id_to_name_mapping(root: _Element) -> Dict[str, str]:
     """Build a mapping from element IDs to their names."""
     id_to_name = {}
@@ -155,7 +170,7 @@ def _extract_input_parameters(
             )
         elif inp.text:
             # Has text content
-            if "#{ " in inp.text or "${ " in inp.text:
+            if _is_jexl_expression(inp.text):
                 # JEXL expression - add to scripts
                 scripts.append(Script(inp.text, node_name, param_name))
                 parameters.append(
