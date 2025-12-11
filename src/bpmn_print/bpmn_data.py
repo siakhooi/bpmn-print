@@ -100,36 +100,48 @@ def _is_jexl_expression(text: str) -> bool:
     return JEXL_PATTERN_HASH in text or JEXL_PATTERN_DOLLAR in text
 
 
+def _simplify_class_name(class_name: str) -> str:
+    """Extract the simple class name from a fully qualified class name.
+
+    Args:
+        class_name: Fully qualified class name (e.g., 'com.example.MyClass')
+
+    Returns:
+        Simple class name (e.g., 'MyClass') or empty string
+    """
+    return class_name.rsplit('.', 1)[-1] if class_name else ''
+
+
 def _build_id_to_name_mapping(root: _Element) -> Dict[str, str]:
     """Build a mapping from element IDs to their names."""
-    id_to_name = {}
-    for elem in root.findall(".//*[@id]"):
-        elem_id = elem.get('id')
-        elem_name = elem.get('name', elem_id)
-        id_to_name[elem_id] = elem_name
-    return id_to_name
+    return {
+        elem.get('id'): elem.get('name', elem.get('id'))
+        for elem in root.findall(".//*[@id]")
+    }
 
 
 def _extract_call_activities(root: _Element) -> List[Node]:
     """Extract all callActivity nodes from the BPMN XML."""
-    nodes = []
-    for call_activity in root.findall(".//bpmn:callActivity", BPMN_NS):
-        node_name = _get_element_name(call_activity)
-        called_element = call_activity.get('calledElement', '')
-        nodes.append(Node(node_name, NODE_TYPE_CALL_ACTIVITY, called_element))
-    return nodes
+    return [
+        Node(
+            _get_element_name(call_activity),
+            NODE_TYPE_CALL_ACTIVITY,
+            call_activity.get('calledElement', '')
+        )
+        for call_activity in root.findall(".//bpmn:callActivity", BPMN_NS)
+    ]
 
 
 def _extract_service_tasks(root: _Element) -> List[Node]:
     """Extract all serviceTask nodes from the BPMN XML."""
-    nodes = []
-    for service_task in root.findall(".//bpmn:serviceTask", BPMN_NS):
-        node_name = _get_element_name(service_task)
-        class_name = service_task.get(CAMUNDA_CLASS_ATTR, '')
-        # Simplify class name - show only the last part
-        simple_class = class_name.rsplit('.', 1)[-1] if class_name else ''
-        nodes.append(Node(node_name, NODE_TYPE_SERVICE_TASK, simple_class))
-    return nodes
+    return [
+        Node(
+            _get_element_name(service_task),
+            NODE_TYPE_SERVICE_TASK,
+            _simplify_class_name(service_task.get(CAMUNDA_CLASS_ATTR, ''))
+        )
+        for service_task in root.findall(".//bpmn:serviceTask", BPMN_NS)
+    ]
 
 
 def _extract_script_elements(
