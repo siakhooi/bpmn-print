@@ -11,6 +11,15 @@ BPMN_NS = {
 }
 CAMUNDA_CLASS_ATTR = '{http://camunda.org/schema/1.0/bpmn}class'
 
+UNKNOWN_VALUE = 'unknown'
+DEFAULT_SCRIPT_NAME = 'script'
+DEFAULT_PARAM_NAME = 'inputParameter'
+JEXL_SCRIPT_PLACEHOLDER = '[See JEXL Scripts]'
+
+# Node type
+NODE_TYPE_CALL_ACTIVITY = 'callActivity'
+NODE_TYPE_SERVICE_TASK = 'serviceTask'
+
 
 @dataclass
 class Node:
@@ -60,10 +69,10 @@ def find_parent_with_id(element: _Element) -> str:
         if 'id' in current.attrib:
             return current.get('id')
         current = current.getparent()
-    return 'unknown'
+    return UNKNOWN_VALUE
 
 
-def _get_element_name(element: _Element, default: str = 'unknown') -> str:
+def _get_element_name(element: _Element, default: str = UNKNOWN_VALUE) -> str:
     """Get the name of an element, falling back to its ID or a default.
 
     Args:
@@ -92,7 +101,7 @@ def _extract_call_activities(root: _Element) -> List[Node]:
     for call_activity in root.findall(".//bpmn:callActivity", BPMN_NS):
         node_name = _get_element_name(call_activity)
         called_element = call_activity.get('calledElement', '')
-        nodes.append(Node(node_name, 'callActivity', called_element))
+        nodes.append(Node(node_name, NODE_TYPE_CALL_ACTIVITY, called_element))
     return nodes
 
 
@@ -104,7 +113,7 @@ def _extract_service_tasks(root: _Element) -> List[Node]:
         class_name = service_task.get(CAMUNDA_CLASS_ATTR, '')
         # Simplify class name - show only the last part
         simple_class = class_name.split('.')[-1] if class_name else ''
-        nodes.append(Node(node_name, 'serviceTask', simple_class))
+        nodes.append(Node(node_name, NODE_TYPE_SERVICE_TASK, simple_class))
     return nodes
 
 
@@ -116,7 +125,7 @@ def _extract_script_elements(
     for scr in root.findall(".//camunda:script", BPMN_NS):
         node_id = find_parent_with_id(scr)
         node_name = id_to_name.get(node_id, node_id)
-        param_name = scr.getparent().get('name', 'script')
+        param_name = scr.getparent().get('name', DEFAULT_SCRIPT_NAME)
         scripts.append(Script(scr.text or "", node_name, param_name))
     return scripts
 
@@ -135,14 +144,14 @@ def _extract_input_parameters(
     for inp in root.findall(".//camunda:inputParameter", BPMN_NS):
         node_id = find_parent_with_id(inp)
         node_name = id_to_name.get(node_id, node_id)
-        param_name = inp.get('name', 'inputParameter')
+        param_name = inp.get('name', DEFAULT_PARAM_NAME)
 
         # Check if it contains a script element
         script_elem = inp.find(".//camunda:script", BPMN_NS)
         if script_elem is not None:
             # Has script - will be shown in scripts section
             parameters.append(
-                Parameter(node_name, param_name, '[See JEXL Scripts]', True)
+                Parameter(node_name, param_name, JEXL_SCRIPT_PLACEHOLDER, True)
             )
         elif inp.text:
             # Has text content
@@ -151,7 +160,7 @@ def _extract_input_parameters(
                 scripts.append(Script(inp.text, node_name, param_name))
                 parameters.append(
                     Parameter(
-                        node_name, param_name, '[See JEXL Scripts]', True
+                        node_name, param_name, JEXL_SCRIPT_PLACEHOLDER, True
                     )
                 )
             else:
