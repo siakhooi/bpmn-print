@@ -69,6 +69,72 @@ def _get_node_name(element, default_name: Optional[str], node_id: str) -> str:
         return element.get(ATTR_NAME, node_id)
 
 
+def _create_bpmn_node(
+    element, node_type: str, default_name: Optional[str]
+) -> BpmnNode:
+    """Create a BpmnNode from an XML element.
+
+    Args:
+        element: XML element representing a BPMN node
+        node_type: Type of the node (e.g., "startEvent", "task")
+        default_name: Default name if element has no name attribute
+
+    Returns:
+        BpmnNode instance
+    """
+    node_id = element.get(ATTR_ID)
+    name = _get_node_name(element, default_name, node_id)
+
+    return BpmnNode(
+        node_id=node_id,
+        name=name,
+        node_type=node_type
+    )
+
+
+def _extract_nodes_by_type(
+    root, ns: dict, node_type: str, config: dict
+) -> List[BpmnNode]:
+    """Extract all nodes of a specific type from the BPMN XML.
+
+    Args:
+        root: Root element of the BPMN XML tree
+        ns: Namespace mapping for XPath queries
+        node_type: Type of nodes to extract (e.g., "startEvent")
+        config: Configuration dict with xpath and default_name
+
+    Returns:
+        List of BpmnNode instances for the specified type
+    """
+    xpath = config["xpath"]
+    default_name = config["default_name"]
+
+    return [
+        _create_bpmn_node(element, node_type, default_name)
+        for element in root.findall(xpath, ns)
+    ]
+
+
+def _extract_all_nodes(root, ns: dict) -> List[BpmnNode]:
+    """Extract all BPMN nodes from the XML tree.
+
+    This function iterates through all node types defined in NODE_TYPE_CONFIG
+    and extracts nodes of each type using XPath queries with the BPMN namespace.
+
+    Args:
+        root: Root element of the BPMN XML tree
+        ns: Namespace mapping for XPath queries
+
+    Returns:
+        List of all BpmnNode instances found in the XML
+    """
+    nodes = []
+    for node_type, config in NODE_TYPE_CONFIG.items():
+        type_nodes = _extract_nodes_by_type(root, ns, node_type, config)
+        nodes.extend(type_nodes)
+    return nodes
+
+
 def _validate_node_ids(nodes: List[BpmnNode]) -> Set[str]:
     """Extract and validate node IDs.
 
@@ -162,23 +228,7 @@ def build_model(xml_file: str) -> BpmnDiagramModel:
     # Extract all nodes using XPath queries with BPMN namespace
     # All XPath queries in NODE_TYPE_CONFIG use the "bpmn:" prefix
     # and must be executed with the namespace mapping (ns)
-    nodes = []
-    for node_type, config in NODE_TYPE_CONFIG.items():
-        # XPath with bpmn: prefix (e.g., ".//bpmn:startEvent")
-        xpath = config["xpath"]
-        default_name = config["default_name"]
-
-        # XPath queries must include namespace mapping for BPMN elements
-        for element in root.findall(xpath, ns):
-            node_id = element.get(ATTR_ID)
-            # Use standardized name extraction helper
-            name = _get_node_name(element, default_name, node_id)
-
-            nodes.append(BpmnNode(
-                node_id=node_id,
-                name=name,
-                node_type=node_type
-            ))
+    nodes = _extract_all_nodes(root, ns)
 
     # Validate node IDs
     node_ids = _validate_node_ids(nodes)

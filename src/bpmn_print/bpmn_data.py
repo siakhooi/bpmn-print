@@ -216,26 +216,65 @@ def _process_text_content(
         return parameter, None
 
 
+def _create_call_activity_node(call_activity: _Element) -> Node:
+    """Create a Node from a callActivity XML element.
+
+    Args:
+        call_activity: XML element representing a callActivity
+
+    Returns:
+        Node instance with callActivity information
+    """
+    return Node(
+        name=_get_element_name(call_activity),
+        type=NODE_TYPE_CALL_ACTIVITY,
+        target=call_activity.get(ATTR_CALLED_ELEMENT, '')
+    )
+
+
 def _extract_call_activities(root: _Element) -> List[Node]:
-    """Extract all callActivity nodes from the BPMN XML."""
+    """Extract all callActivity nodes from the BPMN XML.
+
+    Args:
+        root: Root element of the BPMN XML tree
+
+    Returns:
+        List of Node instances for all callActivity elements
+    """
     return [
-        Node(
-            _get_element_name(call_activity),
-            NODE_TYPE_CALL_ACTIVITY,
-            call_activity.get(ATTR_CALLED_ELEMENT, '')
-        )
+        _create_call_activity_node(call_activity)
         for call_activity in root.findall(XPATH_CALL_ACTIVITY, BPMN_NS)
     ]
 
 
+def _create_service_task_node(service_task: _Element) -> Node:
+    """Create a Node from a serviceTask XML element.
+
+    Args:
+        service_task: XML element representing a serviceTask
+
+    Returns:
+        Node instance with serviceTask information
+    """
+    class_name = service_task.get(CAMUNDA_CLASS_ATTR, '')
+    return Node(
+        name=_get_element_name(service_task),
+        type=NODE_TYPE_SERVICE_TASK,
+        target=_simplify_class_name(class_name)
+    )
+
+
 def _extract_service_tasks(root: _Element) -> List[Node]:
-    """Extract all serviceTask nodes from the BPMN XML."""
+    """Extract all serviceTask nodes from the BPMN XML.
+
+    Args:
+        root: Root element of the BPMN XML tree
+
+    Returns:
+        List of Node instances for all serviceTask elements
+    """
     return [
-        Node(
-            _get_element_name(service_task),
-            NODE_TYPE_SERVICE_TASK,
-            _simplify_class_name(service_task.get(CAMUNDA_CLASS_ATTR, ''))
-        )
+        _create_service_task_node(service_task)
         for service_task in root.findall(XPATH_SERVICE_TASK, BPMN_NS)
     ]
 
