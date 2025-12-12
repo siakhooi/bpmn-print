@@ -1,5 +1,4 @@
 import warnings
-from pathlib import Path
 from typing import List, Optional, Set
 
 import graphviz
@@ -11,6 +10,7 @@ from .errors import BpmnRenderError
 from .node_styles import (
     BPMN_NS, NodeStyle, NODE_TYPE_CONFIG, GraphConfig
 )
+from .path_utils import prepare_output_path
 from .xml_utils import (
     parse_bpmn_xml_with_namespace, build_id_to_name_mapping
 )
@@ -392,19 +392,8 @@ def render_model(model: BpmnDiagramModel, png_out: str):
     _render_nodes(graph, model)
     _render_edges(graph, model)
 
-    # Graphviz render() automatically adds the format extension (e.g., ".png")
-    # Remove any existing extension to avoid double extensions
-    output_path = Path(png_out).with_suffix("")
-
-    # Ensure output directory exists
-    output_dir = output_path.parent
-    if output_dir and not output_dir.exists():
-        try:
-            output_dir.mkdir(parents=True, exist_ok=True)
-        except OSError as e:
-            raise BpmnRenderError.output_dir_error(
-                str(output_dir), str(e)
-            ) from e
+    # Prepare output path (removes extension, ensures directory exists)
+    output_path, _ = prepare_output_path(png_out, auto_extension=".png")
 
     try:
         graph.render(str(output_path), cleanup=True)
