@@ -1,12 +1,14 @@
 import warnings
 from pathlib import Path
-from typing import List, Set, Tuple
+from typing import List, Set
 
 from lxml import etree
 from lxml.etree import XMLSyntaxError
 import graphviz
 
-from .diagram_model import BpmnDiagramModel, BpmnEdge, BpmnNode
+from .diagram_model import (
+    BpmnDiagramModel, BpmnEdge, BpmnNode, Condition
+)
 from .node_styles import BPMN_NS, NodeStyle, NODE_TYPE_CONFIG
 
 
@@ -348,7 +350,7 @@ def render_model(model: BpmnDiagramModel, png_out: str):
         ) from e
 
 
-def render(xml_file: str, png_out: str) -> List[Tuple[int, str, str, str]]:
+def render(xml_file: str, png_out: str) -> List[Condition]:
     """Render a BPMN diagram to PNG using Graphviz.
 
     This is a convenience function that combines model-building and rendering.
@@ -365,7 +367,9 @@ def render(xml_file: str, png_out: str) -> List[Tuple[int, str, str, str]]:
             omitted.
 
     Returns:
-        List of tuples: (number, source_name, target_name, condition)
+        List of Condition objects representing conditional branches.
+        Each Condition supports tuple unpacking for backward compatibility:
+        number, source_name, target_name, condition = condition_obj
 
     Raises:
         FileNotFoundError: If the XML file does not exist or cannot be read
