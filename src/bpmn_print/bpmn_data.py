@@ -43,7 +43,16 @@ class Node:
 
 @dataclass
 class Parameter:
-    """Represents an input parameter."""
+    """Represents an input parameter.
+
+    Attributes:
+        node_name: Name of the node containing this parameter
+        param_name: Name of the parameter
+        value: Parameter value (or placeholder if has_script is True)
+        has_script: Whether this parameter has an associated JEXL script.
+                   Reserved for future use (e.g., styling parameters with
+                   scripts differently in PDF output).
+    """
     node_name: str
     param_name: str
     value: str

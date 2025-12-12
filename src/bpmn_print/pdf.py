@@ -196,6 +196,8 @@ def _create_parameter_table(parameters: List) -> Table:
 
     Args:
         parameters: List of (node_name, param_name, value, has_script) tuples
+                   Note: has_script is currently unused but reserved for
+                   future styling enhancements.
 
     Returns:
         Styled Table object
@@ -203,6 +205,9 @@ def _create_parameter_table(parameters: List) -> Table:
     # Create table data
     table_data = [["Node Name", "Parameter Name", "Value"]]
     for node_name, param_name, value, has_script in parameters:
+        # Note: has_script could be used in the future to apply different
+        # styling to parameters with associated JEXL scripts
+
         # Truncate long values for table display
         max_len = PdfStyle.MAX_VALUE_LENGTH
         if len(value) <= max_len:
