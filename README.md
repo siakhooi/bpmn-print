@@ -12,13 +12,18 @@ pip install bpmn_print
 
 ```
 $ bpmn-print -h
-usage: bpmn-print [-h] [-v]
+usage: bpmn-print [-h] [-v] [-k] input_folder output_folder
 
 Print BPMN workflow for developer readings
+
+positional arguments:
+  input_folder   input folder
+  output_folder  output folder
 
 options:
   -h, --help     show this help message and exit
   -v, --version  show program's version number and exit
+  -k, --keep     keep PNG files after PDF generation
 
 ```
 
