@@ -64,18 +64,29 @@ def pretty_print(
 ) -> None:
     os.makedirs(output_folder, exist_ok=True)
 
-    for file in os.listdir(input_folder):
-        if file.endswith(".bpmn"):
-            src_bpmn_file = os.path.join(input_folder, file)
-            dest_pdf_path = os.path.join(
-                output_folder, file.replace(".bpmn", ".pdf")
-            )
-            png_file = dest_pdf_path.replace(".pdf", ".png")
-            config = ConversionConfig(
-                bpmn_file=src_bpmn_file,
-                pdf_path=dest_pdf_path,
-                png_file=png_file,
-                keep_png=keep_png
-            )
-            convert_bpmn_to_pdf(config)
+    # Collect BPMN files to process
+    bpmn_files = [f for f in os.listdir(input_folder) if f.endswith(".bpmn")]
+
+    if not bpmn_files:
+        console.info(f"No BPMN files found in {input_folder}")
+        return
+
+    console.info(f"Found {len(bpmn_files)} BPMN file(s) to process")
+
+    for file in bpmn_files:
+        console.info(f"Processing {file}...")
+        src_bpmn_file = os.path.join(input_folder, file)
+        dest_pdf_path = os.path.join(
+            output_folder, file.replace(".bpmn", ".pdf")
+        )
+        png_file = dest_pdf_path.replace(".pdf", ".png")
+        config = ConversionConfig(
+            bpmn_file=src_bpmn_file,
+            pdf_path=dest_pdf_path,
+            png_file=png_file,
+            keep_png=keep_png
+        )
+        convert_bpmn_to_pdf(config)
+        console.info(f"✓ Generated {dest_pdf_path}")
+
     console.println("Done.")
