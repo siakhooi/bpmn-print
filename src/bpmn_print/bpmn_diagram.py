@@ -119,7 +119,8 @@ def _extract_all_nodes(root, ns: dict) -> List[BpmnNode]:
     """Extract all BPMN nodes from the XML tree.
 
     This function iterates through all node types defined in NODE_TYPE_CONFIG
-    and extracts nodes of each type using XPath queries with the BPMN namespace.
+    and extracts nodes of each type using XPath queries with the
+    BPMN namespace.
 
     Args:
         root: Root element of the BPMN XML tree

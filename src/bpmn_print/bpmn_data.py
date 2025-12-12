@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import re
 from typing import Dict, List, Optional, Tuple
 
 from lxml.etree import _Element
@@ -22,6 +23,10 @@ UNKNOWN_VALUE = 'unknown'
 DEFAULT_SCRIPT_NAME = 'script'
 DEFAULT_PARAM_NAME = 'inputParameter'
 JEXL_SCRIPT_PLACEHOLDER = '[See JEXL Scripts]'
+
+# JEXL expression pattern - matches both #{ } and ${ } style expressions
+# Compiled at module level for efficiency
+JEXL_PATTERN = re.compile(r'[#$]\{\s')
 
 # Node type
 NODE_TYPE_CALL_ACTIVITY = 'callActivity'
@@ -112,16 +117,16 @@ def _get_element_name(element: _Element, default: str = UNKNOWN_VALUE) -> str:
 def _is_jexl_expression(text: str) -> bool:
     """Check if text contains JEXL expression patterns.
 
+    This function uses a compiled regex pattern to efficiently detect
+    JEXL expressions that use either #{...} or ${...} syntax.
+
     Args:
         text: The text to check for JEXL patterns
 
     Returns:
         True if text contains JEXL expression markers (#{ or ${)
     """
-    JEXL_PATTERN_HASH = '#{ '
-    JEXL_PATTERN_DOLLAR = '${ '
-
-    return JEXL_PATTERN_HASH in text or JEXL_PATTERN_DOLLAR in text
+    return JEXL_PATTERN.search(text) is not None
 
 
 def _simplify_class_name(class_name: str) -> str:
