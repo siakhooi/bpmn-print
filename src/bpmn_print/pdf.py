@@ -108,6 +108,181 @@ class PdfData:
     jexl_scripts: List
 
 
+def _create_standard_table_style(bg_color) -> TableStyle:
+    """Create standard table style with configurable background color.
+
+    This eliminates duplication of table styling across different table types.
+
+    Args:
+        bg_color: Background color for data rows (header color is fixed)
+
+    Returns:
+        TableStyle with standard formatting
+    """
+    return TableStyle(
+        [
+            ("BACKGROUND", (0, 0), (-1, 0), PdfStyle.HEADER_BG_COLOR),
+            ("TEXTCOLOR", (0, 0), (-1, 0), PdfStyle.HEADER_TEXT_COLOR),
+            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+            ("FONTNAME", (0, 0), (-1, 0), PdfStyle.HEADER_FONT_NAME),
+            ("FONTSIZE", (0, 0), (-1, 0), PdfStyle.HEADER_FONT_SIZE),
+            ("BOTTOMPADDING", (0, 0), (-1, 0),
+             PdfStyle.HEADER_BOTTOM_PADDING),
+            ("BACKGROUND", (0, 1), (-1, -1), bg_color),
+            ("GRID", (0, 0), (-1, -1),
+             PdfStyle.GRID_LINE_WIDTH, PdfStyle.GRID_COLOR),
+            ("FONTSIZE", (0, 1), (-1, -1), PdfStyle.BODY_FONT_SIZE),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ]
+    )
+
+
+def _create_condition_table(conditions: List) -> Table:
+    """Create a table for branch conditions.
+
+    Args:
+        conditions: List of (num, source, target, condition) tuples
+
+    Returns:
+        Styled Table object
+    """
+    # Create table data
+    table_data = [["#", "Condition"]]
+    for num, source, target, condition in conditions:
+        table_data.append([str(num), condition])
+
+    # Create and style table
+    table = Table(
+        table_data,
+        colWidths=[PdfStyle.CONDITION_COL_NUMBER,
+                   PdfStyle.CONDITION_COL_TEXT]
+    )
+
+    # Apply standard style with custom alignment for # column
+    style = _create_standard_table_style(PdfStyle.CONDITION_BG_COLOR)
+    style.add("ALIGN", (0, 0), (0, -1), "CENTER")  # Center # column
+    table.setStyle(style)
+
+    return table
+
+
+def _create_node_table(nodes: List) -> Table:
+    """Create a table for BPMN nodes (activities and tasks).
+
+    Args:
+        nodes: List of (node_name, node_type, detail) tuples
+
+    Returns:
+        Styled Table object
+    """
+    # Create table data
+    table_data = [["Node Name", "Type", "Called Element / Class"]]
+    for node_name, node_type, detail in nodes:
+        table_data.append([node_name, node_type, detail])
+
+    # Create and style table
+    table = Table(
+        table_data,
+        colWidths=[PdfStyle.NODE_COL_NAME, PdfStyle.NODE_COL_TYPE,
+                   PdfStyle.NODE_COL_DETAIL]
+    )
+    table.setStyle(_create_standard_table_style(PdfStyle.NODE_BG_COLOR))
+
+    return table
+
+
+def _create_parameter_table(parameters: List) -> Table:
+    """Create a table for input parameters.
+
+    Args:
+        parameters: List of (node_name, param_name, value, has_script) tuples
+
+    Returns:
+        Styled Table object
+    """
+    # Create table data
+    table_data = [["Node Name", "Parameter Name", "Value"]]
+    for node_name, param_name, value, has_script in parameters:
+        # Truncate long values for table display
+        max_len = PdfStyle.MAX_VALUE_LENGTH
+        if len(value) <= max_len:
+            display_value = value
+        else:
+            suffix_len = PdfStyle.TRUNCATE_SUFFIX_LENGTH
+            display_value = value[:max_len - suffix_len] + "..."
+        table_data.append([node_name, param_name, display_value])
+
+    # Create and style table
+    table = Table(
+        table_data,
+        colWidths=[PdfStyle.PARAM_COL_NODE, PdfStyle.PARAM_COL_NAME,
+                   PdfStyle.PARAM_COL_VALUE]
+    )
+    table.setStyle(_create_standard_table_style(PdfStyle.PARAM_BG_COLOR))
+
+    return table
+
+
+def _create_script_section(
+    scripts: List, styles, page_width: float
+) -> List:
+    """Create flowables for JEXL script section.
+
+    Args:
+        scripts: List of (script, node_name, param_name) tuples
+        styles: ReportLab sample stylesheet
+        page_width: Width of the page for sizing
+
+    Returns:
+        List of flowable elements (headings, spacers, preformatted text)
+    """
+    flowables = []
+
+    # Create custom style for script with border effect
+    script_style = ParagraphStyle(
+        "ScriptBox",
+        parent=styles["Code"],
+        leftIndent=PdfStyle.SCRIPT_LEFT_INDENT,
+        rightIndent=PdfStyle.SCRIPT_RIGHT_INDENT,
+        spaceBefore=PdfStyle.SCRIPT_SPACE_BEFORE,
+        spaceAfter=PdfStyle.SCRIPT_SPACE_AFTER,
+        borderWidth=PdfStyle.SCRIPT_BORDER_WIDTH,
+        borderColor=PdfStyle.SCRIPT_BORDER_COLOR,
+        borderPadding=PdfStyle.SCRIPT_BORDER_PADDING,
+        backColor=PdfStyle.SCRIPT_BACK_COLOR,
+    )
+
+    for idx, (script, node_name, param_name) in enumerate(scripts, 1):
+        # Create heading with background
+        heading_text = f"<b>{node_name}</b> | {param_name}"
+        heading = Paragraph(heading_text, styles["Heading3"])
+
+        # Create table with background for heading
+        heading_table = Table([[heading]], colWidths=[page_width])
+        heading_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1),
+                     PdfStyle.SCRIPT_HEADING_BG_COLOR),
+                    ("TOPPADDING", (0, 0), (-1, -1),
+                     PdfStyle.SCRIPT_HEADING_TOP_PADDING),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1),
+                     PdfStyle.SCRIPT_HEADING_BOTTOM_PADDING),
+                    ("LEFTPADDING", (0, 0), (-1, -1),
+                     PdfStyle.SCRIPT_HEADING_LEFT_PADDING),
+                ]
+            )
+        )
+        flowables.append(heading_table)
+        flowables.append(Spacer(1, PdfStyle.SPACER_SMALL))
+
+        # Add script content with border (can flow across pages)
+        flowables.append(Preformatted(script, script_style))
+        flowables.append(Spacer(1, PdfStyle.SPACER_XLARGE))
+
+    return flowables
+
+
 def make(pdf_path: str, data: PdfData) -> None:
     """Generate a PDF document from BPMN data.
 
@@ -145,45 +320,7 @@ def make(pdf_path: str, data: PdfData) -> None:
             Paragraph("<b>Branch Conditions</b>", styles["Heading2"])
         )
         body.append(Spacer(1, PdfStyle.SPACER_MEDIUM))
-
-        # Create table data
-        condition_table_data = [["#", "Condition"]]
-        for num, source, target, condition in data.branch_conditions:
-            condition_table_data.append([str(num), condition])
-
-        # Create and style table
-        condition_table = Table(
-            condition_table_data,
-            colWidths=[PdfStyle.CONDITION_COL_NUMBER,
-                       PdfStyle.CONDITION_COL_TEXT]
-        )
-        condition_table.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0),
-                     PdfStyle.HEADER_BG_COLOR),
-                    ("TEXTCOLOR", (0, 0), (-1, 0),
-                     PdfStyle.HEADER_TEXT_COLOR),
-                    # Center the # column
-                    ("ALIGN", (0, 0), (0, -1), "CENTER"),
-                    ("ALIGN", (1, 0), (-1, -1), "LEFT"),
-                    ("FONTNAME", (0, 0), (-1, 0),
-                     PdfStyle.HEADER_FONT_NAME),
-                    ("FONTSIZE", (0, 0), (-1, 0),
-                     PdfStyle.HEADER_FONT_SIZE),
-                    ("BOTTOMPADDING", (0, 0), (-1, 0),
-                     PdfStyle.HEADER_BOTTOM_PADDING),
-                    ("BACKGROUND", (0, 1), (-1, -1),
-                     PdfStyle.CONDITION_BG_COLOR),
-                    ("GRID", (0, 0), (-1, -1),
-                     PdfStyle.GRID_LINE_WIDTH, PdfStyle.GRID_COLOR),
-                    ("FONTSIZE", (0, 1), (-1, -1),
-                     PdfStyle.BODY_FONT_SIZE),
-                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ]
-            )
-        )
-        body.append(condition_table)
+        body.append(_create_condition_table(data.branch_conditions))
         body.append(Spacer(1, PdfStyle.SPACER_LARGE))
 
     # Nodes table (callActivity and serviceTask)
@@ -195,142 +332,22 @@ def make(pdf_path: str, data: PdfData) -> None:
             )
         )
         body.append(Spacer(1, PdfStyle.SPACER_MEDIUM))
-
-        # Create table data
-        node_table_data = [["Node Name", "Type", "Called Element / Class"]]
-        for node_name, node_type, detail in data.nodes:
-            node_table_data.append([node_name, node_type, detail])
-
-        # Create and style table
-        node_table = Table(
-            node_table_data,
-            colWidths=[PdfStyle.NODE_COL_NAME, PdfStyle.NODE_COL_TYPE,
-                       PdfStyle.NODE_COL_DETAIL]
-        )
-        node_table.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0),
-                     PdfStyle.HEADER_BG_COLOR),
-                    ("TEXTCOLOR", (0, 0), (-1, 0),
-                     PdfStyle.HEADER_TEXT_COLOR),
-                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-                    ("FONTNAME", (0, 0), (-1, 0),
-                     PdfStyle.HEADER_FONT_NAME),
-                    ("FONTSIZE", (0, 0), (-1, 0),
-                     PdfStyle.HEADER_FONT_SIZE),
-                    ("BOTTOMPADDING", (0, 0), (-1, 0),
-                     PdfStyle.HEADER_BOTTOM_PADDING),
-                    ("BACKGROUND", (0, 1), (-1, -1),
-                     PdfStyle.NODE_BG_COLOR),
-                    ("GRID", (0, 0), (-1, -1),
-                     PdfStyle.GRID_LINE_WIDTH, PdfStyle.GRID_COLOR),
-                    ("FONTSIZE", (0, 1), (-1, -1),
-                     PdfStyle.BODY_FONT_SIZE),
-                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ]
-            )
-        )
-        body.append(node_table)
+        body.append(_create_node_table(data.nodes))
         body.append(Spacer(1, PdfStyle.SPACER_LARGE))
 
     # Parameters table
     if data.parameters:
         body.append(Paragraph("<b>Input Parameters</b>", styles["Heading2"]))
         body.append(Spacer(1, PdfStyle.SPACER_MEDIUM))
-
-        # Create table data
-        table_data = [["Node Name", "Parameter Name", "Value"]]
-        for node_name, param_name, value, has_script in data.parameters:
-            # Truncate long values for table display
-            max_len = PdfStyle.MAX_VALUE_LENGTH
-            if len(value) <= max_len:
-                display_value = value
-            else:
-                suffix_len = PdfStyle.TRUNCATE_SUFFIX_LENGTH
-                display_value = value[:max_len - suffix_len] + "..."
-            table_data.append([node_name, param_name, display_value])
-
-        # Create and style table
-        param_table = Table(
-            table_data,
-            colWidths=[PdfStyle.PARAM_COL_NODE, PdfStyle.PARAM_COL_NAME,
-                       PdfStyle.PARAM_COL_VALUE]
-        )
-        param_table.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0),
-                     PdfStyle.HEADER_BG_COLOR),
-                    ("TEXTCOLOR", (0, 0), (-1, 0),
-                     PdfStyle.HEADER_TEXT_COLOR),
-                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-                    ("FONTNAME", (0, 0), (-1, 0),
-                     PdfStyle.HEADER_FONT_NAME),
-                    ("FONTSIZE", (0, 0), (-1, 0),
-                     PdfStyle.HEADER_FONT_SIZE),
-                    ("BOTTOMPADDING", (0, 0), (-1, 0),
-                     PdfStyle.HEADER_BOTTOM_PADDING),
-                    ("BACKGROUND", (0, 1), (-1, -1),
-                     PdfStyle.PARAM_BG_COLOR),
-                    ("GRID", (0, 0), (-1, -1),
-                     PdfStyle.GRID_LINE_WIDTH, PdfStyle.GRID_COLOR),
-                    ("FONTSIZE", (0, 1), (-1, -1),
-                     PdfStyle.BODY_FONT_SIZE),
-                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ]
-            )
-        )
-        body.append(param_table)
+        body.append(_create_parameter_table(data.parameters))
         body.append(Spacer(1, PdfStyle.SPACER_LARGE))
 
     # JEXL scripts (full width)
     if data.jexl_scripts:
         body.append(Paragraph("<b>JEXL Scripts</b>", styles["Heading2"]))
         body.append(Spacer(1, PdfStyle.SPACER_MEDIUM))
-
-        # Create custom style for script with border effect
-        script_style = ParagraphStyle(
-            "ScriptBox",
-            parent=styles["Code"],
-            leftIndent=PdfStyle.SCRIPT_LEFT_INDENT,
-            rightIndent=PdfStyle.SCRIPT_RIGHT_INDENT,
-            spaceBefore=PdfStyle.SCRIPT_SPACE_BEFORE,
-            spaceAfter=PdfStyle.SCRIPT_SPACE_AFTER,
-            borderWidth=PdfStyle.SCRIPT_BORDER_WIDTH,
-            borderColor=PdfStyle.SCRIPT_BORDER_COLOR,
-            borderPadding=PdfStyle.SCRIPT_BORDER_PADDING,
-            backColor=PdfStyle.SCRIPT_BACK_COLOR,
-        )
-
-        for idx, (script, node_name, param_name) in enumerate(
-            data.jexl_scripts, 1
-        ):
-            # Create heading with background
-            heading_text = f"<b>{node_name}</b> | {param_name}"
-            heading = Paragraph(heading_text, styles["Heading3"])
-
-            # Create table with background for heading
-            heading_table = Table([[heading]], colWidths=[page_width])
-            heading_table.setStyle(
-                TableStyle(
-                    [
-                        ("BACKGROUND", (0, 0), (-1, -1),
-                         PdfStyle.SCRIPT_HEADING_BG_COLOR),
-                        ("TOPPADDING", (0, 0), (-1, -1),
-                         PdfStyle.SCRIPT_HEADING_TOP_PADDING),
-                        ("BOTTOMPADDING", (0, 0), (-1, -1),
-                         PdfStyle.SCRIPT_HEADING_BOTTOM_PADDING),
-                        ("LEFTPADDING", (0, 0), (-1, -1),
-                         PdfStyle.SCRIPT_HEADING_LEFT_PADDING),
-                    ]
-                )
-            )
-            body.append(heading_table)
-            body.append(Spacer(1, PdfStyle.SPACER_SMALL))
-
-            # Add script content with border (can flow across pages)
-            body.append(Preformatted(script, script_style))
-            body.append(Spacer(1, PdfStyle.SPACER_XLARGE))
+        body.extend(_create_script_section(
+            data.jexl_scripts, styles, page_width
+        ))
 
     doc.build(body)
