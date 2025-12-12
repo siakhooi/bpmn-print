@@ -1,6 +1,6 @@
 import warnings
 from pathlib import Path
-from typing import List, Set
+from typing import List, Optional, Set
 
 from lxml import etree
 from lxml.etree import XMLSyntaxError
@@ -56,6 +56,35 @@ def _parse_bpmn_xml(xml_file: str):
 
     root = tree.getroot()
     return root, BPMN_NS
+
+
+def _get_node_name(element, default_name: Optional[str], node_id: str) -> str:
+    """Extract and normalize the name for a BPMN node.
+
+    This function standardizes the naming behavior across all node types:
+    - If the element has a "name" attribute, use it
+    - If no "name" attribute and default_name is provided (not None),
+      use default_name
+    - If no "name" attribute and default_name is None, use the node_id
+
+    This ensures all nodes have a meaningful display name, even if not
+    explicitly named in the BPMN XML.
+
+    Args:
+        element: XML element representing the BPMN node
+        default_name: Default name to use if element has no name attribute.
+            If None, falls back to node_id.
+        node_id: The ID of the node (used as final fallback)
+
+    Returns:
+        The display name for the node
+    """
+    if default_name is not None:
+        # Use default_name as fallback when element has no name attribute
+        return element.get("name", default_name)
+    else:
+        # Use node_id as fallback when element has no name attribute
+        return element.get("name", node_id)
 
 
 def _build_id_to_name_mapping(root):
@@ -189,10 +218,8 @@ def build_model(xml_file: str) -> BpmnDiagramModel:
         # XPath queries must include namespace mapping for BPMN elements
         for element in root.findall(xpath, ns):
             node_id = element.get("id")
-            if default_name is not None:
-                name = element.get("name", default_name)
-            else:
-                name = element.get("name", node_id)
+            # Use standardized name extraction helper
+            name = _get_node_name(element, default_name, node_id)
 
             nodes.append(BpmnNode(
                 node_id=node_id,
