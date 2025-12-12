@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List, Tuple
 
 from lxml import etree
@@ -173,17 +174,25 @@ def _render_edges(graph, model: BpmnDiagramModel):
 def render_model(model: BpmnDiagramModel, png_out: str):
     """Render a BpmnDiagramModel to a PNG file using Graphviz.
 
+    Note: Graphviz's render() method automatically appends the format extension
+    (e.g., ".png") to the output path. Therefore, if the provided path already
+    includes an extension, it will be removed before rendering to avoid double
+    extensions (e.g., "output.png.png").
+
     Args:
         model: BpmnDiagramModel to render
-        png_out: Path for the output PNG file
+        png_out: Path for the output PNG file. The ".png" extension will be
+            automatically handled by Graphviz, so it can be included or
+            omitted.
     """
     graph = _create_graph()
     _render_nodes(graph, model)
     _render_edges(graph, model)
 
-    # render() adds extension automatically, so remove .png from output path
-    png_out_base = png_out.replace(".png", "")
-    graph.render(png_out_base, cleanup=True)
+    # Graphviz render() automatically adds the format extension (e.g., ".png")
+    # Remove any existing extension to avoid double extensions
+    output_path = Path(png_out).with_suffix("")
+    graph.render(str(output_path), cleanup=True)
 
 
 def render(xml_file: str, png_out: str) -> List[Tuple[int, str, str, str]]:
@@ -193,9 +202,14 @@ def render(xml_file: str, png_out: str) -> List[Tuple[int, str, str, str]]:
     For better testability, consider using build_model() and render_model()
     separately.
 
+    Note: Graphviz's render() method automatically appends the format extension
+    (e.g., ".png") to the output path. The path handling is done automatically.
+
     Args:
         xml_file: Path to the BPMN XML file
-        png_out: Path for the output PNG file
+        png_out: Path for the output PNG file. The ".png" extension will be
+            automatically handled by Graphviz, so it can be included or
+            omitted.
 
     Returns:
         List of tuples: (number, source_name, target_name, condition)
