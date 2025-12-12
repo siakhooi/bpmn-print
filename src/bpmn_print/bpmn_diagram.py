@@ -20,6 +20,9 @@ from .xml_constants import (
     XPATH_SEQUENCE_FLOW, XPATH_CONDITION_EXPRESSION
 )
 
+# Condition numbering starts at 1 for user-friendly display in diagrams
+CONDITION_START_NUMBER = 1
+
 
 def _parse_bpmn_xml(xml_file: str):
     """Parse BPMN XML file and return root element and namespace mapping.
@@ -242,7 +245,7 @@ def build_model(xml_file: str) -> BpmnDiagramModel:
     # Extract all sequence flow edges using BPMN namespace
     # XPath queries for BPMN elements must include the namespace mapping
     edges = []
-    condition_counter = 1
+    condition_counter = CONDITION_START_NUMBER
 
     # Find all sequenceFlow elements (BPMN namespace required)
     for flow in root.findall(XPATH_SEQUENCE_FLOW, ns):
