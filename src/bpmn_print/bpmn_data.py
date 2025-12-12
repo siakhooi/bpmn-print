@@ -7,16 +7,12 @@ from lxml.etree import _Element
 from .xml_utils import parse_bpmn_xml, build_id_to_name_mapping
 from .xml_constants import (
     ATTR_ID, ATTR_NAME, ATTR_CALLED_ELEMENT,
+    BPMN_NS, CAMUNDA_NS_URI,
     XPATH_CALL_ACTIVITY, XPATH_SERVICE_TASK,
     XPATH_CAMUNDA_SCRIPT, XPATH_CAMUNDA_INPUT_PARAMETER
 )
 
-# BPMN namespace constants
-BPMN_NS = {
-    "camunda": "http://camunda.org/schema/1.0/bpmn",
-    "bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"
-}
-CAMUNDA_NS_URI = BPMN_NS["camunda"]
+# Camunda-specific attribute using namespace URI
 CAMUNDA_CLASS_ATTR = f'{{{CAMUNDA_NS_URI}}}class'
 
 UNKNOWN_VALUE = 'unknown'

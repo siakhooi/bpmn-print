@@ -4,6 +4,18 @@ This module centralizes all magic strings used for XML parsing to avoid
 duplication and reduce the risk of typos.
 """
 
+# BPMN and Camunda namespace mappings for XML parsing
+# These dictionaries map namespace prefixes to their official URIs.
+# Used with lxml's findall() and find() methods to query elements.
+BPMN_NS = {
+    "bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL",
+    "camunda": "http://camunda.org/schema/1.0/bpmn"
+}
+
+# Individual namespace URIs for direct reference
+BPMN_NS_URI = BPMN_NS["bpmn"]
+CAMUNDA_NS_URI = BPMN_NS["camunda"]
+
 # XML attribute names used across BPMN parsing
 ATTR_ID = "id"
 ATTR_NAME = "name"

@@ -10,12 +10,6 @@ from .xml_constants import (
     XPATH_EXCLUSIVE_GATEWAY, XPATH_PARALLEL_GATEWAY
 )
 
-# BPMN namespace mapping for XML parsing
-# Maps the "bpmn" prefix to the official BPMN 2.0 namespace URI.
-# This is used with lxml's findall() and find() methods to query
-# BPMN elements in XML documents.
-BPMN_NS = {"bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"}
-
 
 class NodeStyle:
     """Constants for node styling attributes."""

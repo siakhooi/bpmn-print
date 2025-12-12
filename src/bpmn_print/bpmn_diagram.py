@@ -8,7 +8,7 @@ from .diagram_model import (
 )
 from .errors import BpmnRenderError
 from .node_styles import (
-    BPMN_NS, NodeStyle, NODE_TYPE_CONFIG, GraphConfig
+    NodeStyle, NODE_TYPE_CONFIG, GraphConfig
 )
 from .path_utils import prepare_output_path
 from .xml_utils import (
@@ -16,6 +16,7 @@ from .xml_utils import (
 )
 from .xml_constants import (
     ATTR_ID, ATTR_NAME, ATTR_SOURCE_REF, ATTR_TARGET_REF,
+    BPMN_NS,
     XPATH_SEQUENCE_FLOW, XPATH_CONDITION_EXPRESSION
 )
 
