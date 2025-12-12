@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
-from lxml import etree
-from lxml.etree import _Element, XMLSyntaxError
+from lxml.etree import _Element
+
+from .xml_utils import parse_bpmn_xml
 
 # BPMN namespace constants
 BPMN_NS = {
@@ -304,22 +305,11 @@ def extract(xml_file: str) -> BpmnExtractResult:
         Supports tuple unpacking: (nodes, parameters, scripts)
 
     Raises:
-        FileNotFoundError: If the XML file does not exist
+        FileNotFoundError: If the XML file does not exist or cannot be read
+        ValueError: If the path is not a file
         XMLSyntaxError: If the XML file is malformed or invalid
-        etree.XMLSyntaxError: If the XML cannot be parsed
     """
-    try:
-        tree = etree.parse(xml_file)
-    except OSError as e:
-        raise FileNotFoundError(
-            f"BPMN file not found or cannot be read: {xml_file}"
-        ) from e
-    except XMLSyntaxError as e:
-        raise XMLSyntaxError(
-            f"Invalid XML syntax in BPMN file: {xml_file}"
-        ) from e
-
-    root = tree.getroot()
+    root = parse_bpmn_xml(xml_file)
 
     # Build ID to name mapping
     id_to_name = _build_id_to_name_mapping(root)
