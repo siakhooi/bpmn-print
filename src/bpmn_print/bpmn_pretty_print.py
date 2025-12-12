@@ -51,7 +51,12 @@ def convert_bpmn_to_pdf(config: ConversionConfig) -> None:
 
     # 4. Remove PNG file if not keeping it
     if not config.keep_png and os.path.exists(config.png_file):
-        os.remove(config.png_file)
+        try:
+            os.remove(config.png_file)
+        except OSError as e:
+            console.warning(
+                f"Could not remove PNG file {config.png_file}: {e}"
+            )
 
 
 def pretty_print(
