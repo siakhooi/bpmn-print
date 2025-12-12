@@ -1,6 +1,8 @@
 from lxml import etree
 import graphviz
 
+from .node_styles import BPMN_NS, NodeStyle, NODE_TYPE_CONFIG
+
 
 def _parse_bpmn_xml(xml_file):
     """Parse BPMN XML file and return root element and namespace mapping.
@@ -13,8 +15,7 @@ def _parse_bpmn_xml(xml_file):
     """
     tree = etree.parse(xml_file)
     root = tree.getroot()
-    ns = {"bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"}
-    return root, ns
+    return root, BPMN_NS
 
 
 def _build_id_to_name_mapping(root):
@@ -46,135 +47,43 @@ def _create_graph():
     return graph
 
 
-def _add_start_events(graph, root, ns):
-    """Add start event nodes to the graph.
+def _add_nodes_by_type(graph, root, ns, node_type):
+    """Add nodes of a specific type to the graph based on configuration.
+
+    Args:
+        graph: graphviz.Digraph instance
+        root: Root element of the BPMN XML tree
+        ns: Namespace dictionary
+        node_type: Key from NODE_TYPE_CONFIG specifying the node type to add
+    """
+    config = NODE_TYPE_CONFIG[node_type]
+    xpath = config["xpath"]
+    default_name = config["default_name"]
+
+    # Extract styling attributes (exclude xpath and default_name)
+    style_attrs = {k: v for k, v in config.items()
+                   if k not in ("xpath", "default_name")}
+
+    for element in root.findall(xpath, ns):
+        node_id = element.get("id")
+        if default_name is not None:
+            name = element.get("name", default_name)
+        else:
+            name = element.get("name", node_id)
+
+        graph.node(node_id, name, **style_attrs)
+
+
+def _add_all_nodes(graph, root, ns):
+    """Add all BPMN node types to the graph.
 
     Args:
         graph: graphviz.Digraph instance
         root: Root element of the BPMN XML tree
         ns: Namespace dictionary
     """
-    for start_event in root.findall(".//bpmn:startEvent", ns):
-        node_id = start_event.get("id")
-        name = start_event.get("name", "Start")
-        graph.node(
-            node_id,
-            name,
-            shape="circle",
-            style="filled",
-            fillcolor="lightgreen",
-            width="0.6",
-            height="0.6",
-            fixedsize="true",
-        )
-
-
-def _add_end_events(graph, root, ns):
-    """Add end event nodes to the graph.
-
-    Args:
-        graph: graphviz.Digraph instance
-        root: Root element of the BPMN XML tree
-        ns: Namespace dictionary
-    """
-    for end_event in root.findall(".//bpmn:endEvent", ns):
-        node_id = end_event.get("id")
-        name = end_event.get("name", "End")
-        graph.node(
-            node_id,
-            name,
-            shape="doublecircle",
-            style="filled",
-            fillcolor="lightcoral",
-            width="0.6",
-            height="0.6",
-            fixedsize="true",
-        )
-
-
-def _add_tasks(graph, root, ns):
-    """Add task nodes to the graph.
-
-    Args:
-        graph: graphviz.Digraph instance
-        root: Root element of the BPMN XML tree
-        ns: Namespace dictionary
-    """
-    for task in root.findall(".//bpmn:task", ns):
-        node_id = task.get("id")
-        name = task.get("name", node_id)
-        graph.node(
-            node_id,
-            name,
-            shape="box",
-            style="rounded,filled",
-            fillcolor="lightyellow",
-        )
-
-
-def _add_service_tasks(graph, root, ns):
-    """Add service task nodes to the graph.
-
-    Args:
-        graph: graphviz.Digraph instance
-        root: Root element of the BPMN XML tree
-        ns: Namespace dictionary
-    """
-    for service_task in root.findall(".//bpmn:serviceTask", ns):
-        node_id = service_task.get("id")
-        name = service_task.get("name", node_id)
-        graph.node(
-            node_id,
-            name,
-            shape="box",
-            style="rounded,filled",
-            fillcolor="lightblue",
-            penwidth="2",
-        )
-
-
-def _add_call_activities(graph, root, ns):
-    """Add call activity nodes to the graph.
-
-    Args:
-        graph: graphviz.Digraph instance
-        root: Root element of the BPMN XML tree
-        ns: Namespace dictionary
-    """
-    for call_activity in root.findall(".//bpmn:callActivity", ns):
-        node_id = call_activity.get("id")
-        name = call_activity.get("name", node_id)
-        graph.node(
-            node_id,
-            name,
-            shape="box",
-            style="rounded,filled,bold",
-            fillcolor="wheat",
-            penwidth="3",
-        )
-
-
-def _add_gateways(graph, root, ns):
-    """Add gateway nodes (exclusive and parallel) to the graph.
-
-    Args:
-        graph: graphviz.Digraph instance
-        root: Root element of the BPMN XML tree
-        ns: Namespace dictionary
-    """
-    for gateway in root.findall(".//bpmn:exclusiveGateway", ns):
-        node_id = gateway.get("id")
-        name = gateway.get("name", "X")
-        graph.node(
-            node_id, name, shape="diamond", style="filled", fillcolor="yellow"
-        )
-
-    for gateway in root.findall(".//bpmn:parallelGateway", ns):
-        node_id = gateway.get("id")
-        name = gateway.get("name", "+")
-        graph.node(
-            node_id, name, shape="diamond", style="filled", fillcolor="orange"
-        )
+    for node_type in NODE_TYPE_CONFIG.keys():
+        _add_nodes_by_type(graph, root, ns, node_type)
 
 
 def _add_sequence_flows(graph, root, ns, id_to_name):
@@ -213,9 +122,19 @@ def _add_sequence_flows(graph, root, ns, id_to_name):
                 (condition_counter, source_name, target_name, condition_text)
             )
             condition_counter += 1
-            graph.edge(sid, tid, label=label, fontsize="11", fontcolor="red")
+            graph.edge(
+                sid,
+                tid,
+                label=label,
+                fontsize=NodeStyle.CONDITION_FONT_SIZE,
+                fontcolor=NodeStyle.CONDITION_FONT_COLOR
+            )
         elif flow_name:
-            graph.edge(sid, tid, label=flow_name, fontsize="10")
+            graph.edge(
+                sid,
+                tid,
+                label=flow_name,
+                fontsize=NodeStyle.FLOW_NAME_FONT_SIZE)
         else:
             graph.edge(sid, tid)
 
@@ -254,12 +173,7 @@ def render(xml_file, png_out):
     graph = _create_graph()
 
     # Add all node types
-    _add_start_events(graph, root, ns)
-    _add_end_events(graph, root, ns)
-    _add_tasks(graph, root, ns)
-    _add_service_tasks(graph, root, ns)
-    _add_call_activities(graph, root, ns)
-    _add_gateways(graph, root, ns)
+    _add_all_nodes(graph, root, ns)
 
     # Add sequence flows and collect conditions
     conditions = _add_sequence_flows(graph, root, ns, id_to_name)
