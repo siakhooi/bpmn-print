@@ -8,7 +8,9 @@ from .diagram_model import (
     BpmnDiagramModel, BpmnEdge, BpmnNode, Condition
 )
 from .errors import BpmnRenderError
-from .node_styles import BPMN_NS, NodeStyle, NODE_TYPE_CONFIG
+from .node_styles import (
+    BPMN_NS, NodeStyle, NODE_TYPE_CONFIG, GraphConfig
+)
 from .xml_utils import (
     parse_bpmn_xml_with_namespace, build_id_to_name_mapping
 )
@@ -285,12 +287,14 @@ def build_model(xml_file: str) -> BpmnDiagramModel:
 def _create_graph():
     """Create and configure a Graphviz Digraph for BPMN rendering.
 
+    Uses configuration from GraphConfig for consistent styling.
+
     Returns:
         Configured graphviz.Digraph instance
     """
-    graph = graphviz.Digraph(format="png")
-    # Left-to-right layout with polyline edges for better label support
-    graph.attr(rankdir="LR", splines="polyline")
+    graph = graphviz.Digraph(format=GraphConfig.FORMAT)
+    # Apply graph-level configuration
+    graph.attr(rankdir=GraphConfig.RANKDIR, splines=GraphConfig.SPLINES)
     return graph
 
 

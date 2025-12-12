@@ -38,6 +38,26 @@ class NodeStyle:
     FLOW_NAME_FONT_SIZE = "10"
 
 
+class GraphConfig:
+    """Configuration for Graphviz graph rendering.
+
+    This class centralizes all graph-level configuration settings,
+    making them easy to customize without modifying the rendering code.
+    """
+    # Output format
+    FORMAT = "png"
+
+    # Graph layout direction
+    # Options: "LR" (left-to-right), "TB" (top-to-bottom),
+    #          "RL" (right-to-left), "BT" (bottom-to-top)
+    RANKDIR = "LR"
+
+    # Edge routing style
+    # Options: "polyline", "spline", "line", "ortho"
+    # polyline provides better label support
+    SPLINES = "polyline"
+
+
 # Node type configuration: maps BPMN element types to their styling
 # All XPath queries use the "bpmn:" prefix and must be executed with
 # the BPMN_NS namespace mapping when calling findall() or find()
