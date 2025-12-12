@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+from typing import List
+
 from reportlab.platypus import (
     SimpleDocTemplate,
     Image,
@@ -13,10 +16,34 @@ from reportlab.lib.units import mm
 from reportlab.lib import colors
 
 
-def make(
-    pdf_path, png_file, branch_conditions, nodes, parameters,
-    jexl_scripts
-):
+@dataclass
+class PdfData:
+    """Container for BPMN data to be rendered in PDF.
+
+    Groups all the extracted BPMN information needed for PDF generation,
+    reducing the number of parameters passed to the make() function.
+
+    Attributes:
+        png_file: Path to the diagram image file
+        branch_conditions: List of conditional branches
+        nodes: List of BPMN nodes (activities and tasks)
+        parameters: List of input parameters
+        jexl_scripts: List of JEXL scripts
+    """
+    png_file: str
+    branch_conditions: List
+    nodes: List
+    parameters: List
+    jexl_scripts: List
+
+
+def make(pdf_path: str, data: PdfData) -> None:
+    """Generate a PDF document from BPMN data.
+
+    Args:
+        pdf_path: Path where the PDF file will be saved
+        data: PdfData container with all BPMN information to render
+    """
     doc = SimpleDocTemplate(
         pdf_path,
         pagesize=A4,
@@ -33,7 +60,7 @@ def make(
     page_width = A4[0] - 20 * mm  # A4 width minus margins
     body.append(
         Image(
-            png_file,
+            data.png_file,
             width=page_width,
             height=page_width * 1.2,
             kind="proportional"
@@ -42,7 +69,7 @@ def make(
     body.append(Spacer(1, 12))
 
     # Branch conditions table (if any)
-    if branch_conditions:
+    if data.branch_conditions:
         body.append(
             Paragraph("<b>Branch Conditions</b>", styles["Heading2"])
         )
@@ -50,7 +77,7 @@ def make(
 
         # Create table data
         condition_table_data = [["#", "Condition"]]
-        for num, source, target, condition in branch_conditions:
+        for num, source, target, condition in data.branch_conditions:
             condition_table_data.append([str(num), condition])
 
         # Create and style table
@@ -77,7 +104,7 @@ def make(
         body.append(Spacer(1, 12))
 
     # Nodes table (callActivity and serviceTask)
-    if nodes:
+    if data.nodes:
         body.append(
             Paragraph(
                 "<b>Nodes (Activities and Tasks)</b>",
@@ -88,7 +115,7 @@ def make(
 
         # Create table data
         node_table_data = [["Node Name", "Type", "Called Element / Class"]]
-        for node_name, node_type, detail in nodes:
+        for node_name, node_type, detail in data.nodes:
             node_table_data.append([node_name, node_type, detail])
 
         # Create and style table
@@ -113,13 +140,13 @@ def make(
         body.append(Spacer(1, 12))
 
     # Parameters table
-    if parameters:
+    if data.parameters:
         body.append(Paragraph("<b>Input Parameters</b>", styles["Heading2"]))
         body.append(Spacer(1, 6))
 
         # Create table data
         table_data = [["Node Name", "Parameter Name", "Value"]]
-        for node_name, param_name, value, has_script in parameters:
+        for node_name, param_name, value, has_script in data.parameters:
             # Truncate long values for table display
             display_value = value if len(value) <= 50 else value[:47] + "..."
             table_data.append([node_name, param_name, display_value])
@@ -146,7 +173,7 @@ def make(
         body.append(Spacer(1, 12))
 
     # JEXL scripts (full width)
-    if jexl_scripts:
+    if data.jexl_scripts:
         body.append(Paragraph("<b>JEXL Scripts</b>", styles["Heading2"]))
         body.append(Spacer(1, 6))
 
@@ -164,7 +191,9 @@ def make(
             backColor=colors.white,
         )
 
-        for idx, (script, node_name, param_name) in enumerate(jexl_scripts, 1):
+        for idx, (script, node_name, param_name) in enumerate(
+            data.jexl_scripts, 1
+        ):
             # Create heading with background
             heading_text = f"<b>{node_name}</b> | {param_name}"
             heading = Paragraph(heading_text, styles["Heading3"])
