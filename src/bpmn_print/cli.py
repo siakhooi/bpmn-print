@@ -1,5 +1,7 @@
 import argparse
+import sys
 from importlib.metadata import version
+
 from bpmn_print.bpmn_pretty_print import pretty_print
 import bpmn_print.console as console
 
@@ -20,19 +22,19 @@ def run() -> None:
         action="store_true",
         help="keep PNG files after PDF generation",
     )
-    parser.add_argument("input_folder", help="input folder")
-    parser.add_argument("output_folder", help="output folder")
+    parser.add_argument(
+        "input_folder",
+        help="input folder"
+    )
+    parser.add_argument(
+        "output_folder",
+        help="output folder"
+    )
 
     args = parser.parse_args()
-
-    if not args.input_folder or not args.output_folder:
-        console.error(
-            Exception("Both input_folder and output_folder are required.")
-        )
-        exit(1)
 
     try:
         pretty_print(args.input_folder, args.output_folder, args.keep)
     except Exception as e:
         console.error(e)
-        exit(2)
+        sys.exit(2)
