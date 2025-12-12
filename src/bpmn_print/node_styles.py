@@ -4,7 +4,10 @@ This module contains all styling constants and node type configurations
 for rendering BPMN diagrams with Graphviz.
 """
 
-# BPMN namespace
+# BPMN namespace mapping for XML parsing
+# Maps the "bpmn" prefix to the official BPMN 2.0 namespace URI.
+# This is used with lxml's findall() and find() methods to query
+# BPMN elements in XML documents.
 BPMN_NS = {"bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"}
 
 
@@ -30,9 +33,11 @@ class NodeStyle:
 
 
 # Node type configuration: maps BPMN element types to their styling
+# All XPath queries use the "bpmn:" prefix and must be executed with
+# the BPMN_NS namespace mapping when calling findall() or find()
 NODE_TYPE_CONFIG = {
     "startEvent": {
-        "xpath": ".//bpmn:startEvent",
+        "xpath": ".//bpmn:startEvent",  # XPath with BPMN namespace prefix
         "default_name": "Start",
         "shape": "circle",
         "style": "filled",

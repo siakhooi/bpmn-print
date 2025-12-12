@@ -13,11 +13,17 @@ from .node_styles import BPMN_NS, NodeStyle, NODE_TYPE_CONFIG
 def _parse_bpmn_xml(xml_file: str):
     """Parse BPMN XML file and return root element and namespace mapping.
 
+    This function parses the BPMN XML file and returns the root element
+    along with the BPMN namespace mapping. The namespace mapping is required
+    for all XPath queries that target BPMN elements (e.g., bpmn:startEvent,
+    bpmn:sequenceFlow).
+
     Args:
         xml_file: Path to the BPMN XML file
 
     Returns:
-        Tuple of (root_element, namespace_dict)
+        Tuple of (root_element, namespace_dict) where namespace_dict is
+        BPMN_NS containing the BPMN namespace mapping for XPath queries.
 
     Raises:
         FileNotFoundError: If the XML file does not exist or cannot be read
@@ -53,12 +59,24 @@ def _parse_bpmn_xml(xml_file: str):
 def _build_id_to_name_mapping(root):
     """Build a mapping from element IDs to their names.
 
+    This function searches for all elements with an "id" attribute in the
+    XML tree, regardless of namespace. This is intentional because:
+    1. BPMN elements may have IDs
+    2. Other XML elements (e.g., from extensions) may also have IDs
+    3. We need to map all IDs to names for reference resolution
+
+    Note: This XPath query (".//*[@id]") intentionally does not use the
+    BPMN namespace prefix because we want to find ALL elements with IDs,
+    not just BPMN elements.
+
     Args:
         root: Root element of the BPMN XML tree
 
     Returns:
         Dictionary mapping element IDs to names
     """
+    # XPath without namespace: finds any element with @id attribute
+    # This is intentional to capture IDs from all namespaces
     id_to_name = {}
     for elem in root.findall(".//*[@id]"):
         elem_id = elem.get("id")
@@ -157,12 +175,16 @@ def build_model(xml_file: str) -> BpmnDiagramModel:
     root, ns = _parse_bpmn_xml(xml_file)
     id_to_name = _build_id_to_name_mapping(root)
 
-    # Extract all nodes
+    # Extract all nodes using XPath queries with BPMN namespace
+    # All XPath queries in NODE_TYPE_CONFIG use the "bpmn:" prefix
+    # and must be executed with the namespace mapping (ns)
     nodes = []
     for node_type, config in NODE_TYPE_CONFIG.items():
+        # XPath with bpmn: prefix (e.g., ".//bpmn:startEvent")
         xpath = config["xpath"]
         default_name = config["default_name"]
 
+        # XPath queries must include namespace mapping for BPMN elements
         for element in root.findall(xpath, ns):
             node_id = element.get("id")
             if default_name is not None:
@@ -179,16 +201,19 @@ def build_model(xml_file: str) -> BpmnDiagramModel:
     # Validate node IDs
     node_ids = _validate_node_ids(nodes)
 
-    # Extract all edges
+    # Extract all sequence flow edges using BPMN namespace
+    # XPath queries for BPMN elements must include the namespace mapping
     edges = []
     condition_counter = 1
 
+    # Find all sequenceFlow elements (BPMN namespace required)
     for flow in root.findall(".//bpmn:sequenceFlow", ns):
         source_id = flow.get("sourceRef")
         target_id = flow.get("targetRef")
         flow_name = flow.get("name", "")
 
-        # Check for condition expression
+        # Check for condition expression within the sequence flow
+        # XPath query uses BPMN namespace
         condition_elem = flow.find(".//bpmn:conditionExpression", ns)
         condition_text = None
         if condition_elem is not None and condition_elem.text:
