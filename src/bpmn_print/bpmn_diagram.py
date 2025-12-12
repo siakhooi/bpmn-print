@@ -1,6 +1,9 @@
+from typing import List, Tuple
+
 from lxml import etree
 import graphviz
 
+from .diagram_model import BpmnDiagramModel, BpmnEdge, BpmnNode
 from .node_styles import BPMN_NS, NodeStyle, NODE_TYPE_CONFIG
 
 
@@ -35,6 +38,81 @@ def _build_id_to_name_mapping(root):
     return id_to_name
 
 
+def build_model(xml_file: str) -> BpmnDiagramModel:
+    """Build a pure model representation of the BPMN diagram from XML.
+
+    This function extracts all nodes and edges from the BPMN XML file
+    into a model structure without any rendering dependencies. This allows
+    for easy testing and potential rendering to different formats.
+
+    Args:
+        xml_file: Path to the BPMN XML file
+
+    Returns:
+        BpmnDiagramModel containing all nodes and edges
+    """
+    root, ns = _parse_bpmn_xml(xml_file)
+    id_to_name = _build_id_to_name_mapping(root)
+
+    # Extract all nodes
+    nodes = []
+    for node_type, config in NODE_TYPE_CONFIG.items():
+        xpath = config["xpath"]
+        default_name = config["default_name"]
+
+        for element in root.findall(xpath, ns):
+            node_id = element.get("id")
+            if default_name is not None:
+                name = element.get("name", default_name)
+            else:
+                name = element.get("name", node_id)
+
+            nodes.append(BpmnNode(
+                node_id=node_id,
+                name=name,
+                node_type=node_type
+            ))
+
+    # Extract all edges
+    edges = []
+    condition_counter = 1
+
+    for flow in root.findall(".//bpmn:sequenceFlow", ns):
+        source_id = flow.get("sourceRef")
+        target_id = flow.get("targetRef")
+        flow_name = flow.get("name", "")
+
+        # Check for condition expression
+        condition_elem = flow.find(".//bpmn:conditionExpression", ns)
+        condition_text = None
+        if condition_elem is not None and condition_elem.text:
+            condition_text = condition_elem.text.strip()
+
+        # Determine label and condition number
+        label = None
+        condition_number = None
+        if condition_text:
+            condition_number = condition_counter
+            condition_counter += 1
+            label = f"[{condition_number}]"
+        elif flow_name:
+            label = flow_name
+
+        edges.append(BpmnEdge(
+            source_id=source_id,
+            target_id=target_id,
+            label=label,
+            condition=condition_text,
+            condition_number=condition_number
+        ))
+
+    return BpmnDiagramModel(
+        nodes=nodes,
+        edges=edges,
+        id_to_name=id_to_name
+    )
+
+
 def _create_graph():
     """Create and configure a Graphviz Digraph for BPMN rendering.
 
@@ -47,114 +125,73 @@ def _create_graph():
     return graph
 
 
-def _add_nodes_by_type(graph, root, ns, node_type):
-    """Add nodes of a specific type to the graph based on configuration.
+def _render_nodes(graph, model: BpmnDiagramModel):
+    """Add all nodes from the model to the graph.
 
     Args:
         graph: graphviz.Digraph instance
-        root: Root element of the BPMN XML tree
-        ns: Namespace dictionary
-        node_type: Key from NODE_TYPE_CONFIG specifying the node type to add
+        model: BpmnDiagramModel containing nodes to render
     """
-    config = NODE_TYPE_CONFIG[node_type]
-    xpath = config["xpath"]
-    default_name = config["default_name"]
-
-    # Extract styling attributes (exclude xpath and default_name)
-    style_attrs = {k: v for k, v in config.items()
-                   if k not in ("xpath", "default_name")}
-
-    for element in root.findall(xpath, ns):
-        node_id = element.get("id")
-        if default_name is not None:
-            name = element.get("name", default_name)
-        else:
-            name = element.get("name", node_id)
-
-        graph.node(node_id, name, **style_attrs)
+    for node in model.nodes:
+        config = NODE_TYPE_CONFIG[node.node_type]
+        # Extract styling attributes (exclude xpath and default_name)
+        style_attrs = {k: v for k, v in config.items()
+                       if k not in ("xpath", "default_name")}
+        graph.node(node.node_id, node.name, **style_attrs)
 
 
-def _add_all_nodes(graph, root, ns):
-    """Add all BPMN node types to the graph.
+def _render_edges(graph, model: BpmnDiagramModel):
+    """Add all edges from the model to the graph.
 
     Args:
         graph: graphviz.Digraph instance
-        root: Root element of the BPMN XML tree
-        ns: Namespace dictionary
+        model: BpmnDiagramModel containing edges to render
     """
-    for node_type in NODE_TYPE_CONFIG.keys():
-        _add_nodes_by_type(graph, root, ns, node_type)
-
-
-def _add_sequence_flows(graph, root, ns, id_to_name):
-    """Add sequence flow edges to the graph and collect conditions.
-
-    Args:
-        graph: graphviz.Digraph instance
-        root: Root element of the BPMN XML tree
-        ns: Namespace dictionary
-        id_to_name: Dictionary mapping element IDs to names
-
-    Returns:
-        List of tuples: (number, source_name, target_name, condition)
-    """
-    conditions = []
-    condition_counter = 1
-
-    for flow in root.findall(".//bpmn:sequenceFlow", ns):
-        sid = flow.get("sourceRef")
-        tid = flow.get("targetRef")
-        flow_name = flow.get("name", "")
-
-        # Check for condition expression
-        condition_elem = flow.find(".//bpmn:conditionExpression", ns)
-        condition_text = ""
-        if condition_elem is not None and condition_elem.text:
-            condition_text = condition_elem.text.strip()
-
-        # Build edge label
-        if condition_text:
-            # Number the conditional branch
-            label = f"[{condition_counter}]"
-            source_name = id_to_name.get(sid, sid)
-            target_name = id_to_name.get(tid, tid)
-            conditions.append(
-                (condition_counter, source_name, target_name, condition_text)
-            )
-            condition_counter += 1
+    for edge in model.edges:
+        if edge.condition:
+            # Conditional edge with numbered label
             graph.edge(
-                sid,
-                tid,
-                label=label,
+                edge.source_id,
+                edge.target_id,
+                label=edge.label,
                 fontsize=NodeStyle.CONDITION_FONT_SIZE,
                 fontcolor=NodeStyle.CONDITION_FONT_COLOR
             )
-        elif flow_name:
+        elif edge.label:
+            # Edge with name label
             graph.edge(
-                sid,
-                tid,
-                label=flow_name,
-                fontsize=NodeStyle.FLOW_NAME_FONT_SIZE)
+                edge.source_id,
+                edge.target_id,
+                label=edge.label,
+                fontsize=NodeStyle.FLOW_NAME_FONT_SIZE
+            )
         else:
-            graph.edge(sid, tid)
+            # Plain edge without label
+            graph.edge(edge.source_id, edge.target_id)
 
-    return conditions
 
-
-def _render_graph(graph, png_out):
-    """Render the graph to a PNG file.
+def render_model(model: BpmnDiagramModel, png_out: str):
+    """Render a BpmnDiagramModel to a PNG file using Graphviz.
 
     Args:
-        graph: graphviz.Digraph instance
+        model: BpmnDiagramModel to render
         png_out: Path for the output PNG file
     """
+    graph = _create_graph()
+    _render_nodes(graph, model)
+    _render_edges(graph, model)
+
     # render() adds extension automatically, so remove .png from output path
     png_out_base = png_out.replace(".png", "")
     graph.render(png_out_base, cleanup=True)
 
 
-def render(xml_file, png_out):
+def render(xml_file: str, png_out: str) -> List[Tuple[int, str, str, str]]:
     """Render a BPMN diagram to PNG using Graphviz.
+
+    This is a convenience function that combines model-building and rendering.
+    For better testability, consider using build_model() and render_model()
+    separately.
 
     Args:
         xml_file: Path to the BPMN XML file
@@ -163,22 +200,11 @@ def render(xml_file, png_out):
     Returns:
         List of tuples: (number, source_name, target_name, condition)
     """
-    # Parse BPMN XML
-    root, ns = _parse_bpmn_xml(xml_file)
+    # Build the model from XML (pure, no Graphviz dependencies)
+    model = build_model(xml_file)
 
-    # Build ID to name mapping
-    id_to_name = _build_id_to_name_mapping(root)
+    # Render the model to PNG
+    render_model(model, png_out)
 
-    # Create and configure graph
-    graph = _create_graph()
-
-    # Add all node types
-    _add_all_nodes(graph, root, ns)
-
-    # Add sequence flows and collect conditions
-    conditions = _add_sequence_flows(graph, root, ns, id_to_name)
-
-    # Render to file
-    _render_graph(graph, png_out)
-
-    return conditions
+    # Return conditions for backward compatibility
+    return model.get_conditions()
