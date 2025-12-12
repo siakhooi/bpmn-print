@@ -4,6 +4,11 @@ from typing import Dict, List, Optional, Tuple
 from lxml.etree import _Element
 
 from .xml_utils import parse_bpmn_xml, build_id_to_name_mapping
+from .xml_constants import (
+    ATTR_ID, ATTR_NAME, ATTR_CALLED_ELEMENT,
+    XPATH_CALL_ACTIVITY, XPATH_SERVICE_TASK,
+    XPATH_CAMUNDA_SCRIPT, XPATH_CAMUNDA_INPUT_PARAMETER
+)
 
 # BPMN namespace constants
 BPMN_NS = {
@@ -101,7 +106,7 @@ def _get_element_name(element: _Element, default: str = UNKNOWN_VALUE) -> str:
     Returns:
         The element's name, id, or default value
     """
-    return element.get('name', element.get('id', default))
+    return element.get(ATTR_NAME, element.get(ATTR_ID, default))
 
 
 def _is_jexl_expression(text: str) -> bool:
@@ -145,7 +150,7 @@ def _get_node_info(
     """
     node_id = find_parent_with_id(element)
     node_name = id_to_name.get(node_id, node_id)
-    return node_name, element.get('name', DEFAULT_PARAM_NAME)
+    return node_name, element.get(ATTR_NAME, DEFAULT_PARAM_NAME)
 
 
 def _create_parameter(
@@ -217,9 +222,9 @@ def _extract_call_activities(root: _Element) -> List[Node]:
         Node(
             _get_element_name(call_activity),
             NODE_TYPE_CALL_ACTIVITY,
-            call_activity.get('calledElement', '')
+            call_activity.get(ATTR_CALLED_ELEMENT, '')
         )
-        for call_activity in root.findall(".//bpmn:callActivity", BPMN_NS)
+        for call_activity in root.findall(XPATH_CALL_ACTIVITY, BPMN_NS)
     ]
 
 
@@ -231,7 +236,7 @@ def _extract_service_tasks(root: _Element) -> List[Node]:
             NODE_TYPE_SERVICE_TASK,
             _simplify_class_name(service_task.get(CAMUNDA_CLASS_ATTR, ''))
         )
-        for service_task in root.findall(".//bpmn:serviceTask", BPMN_NS)
+        for service_task in root.findall(XPATH_SERVICE_TASK, BPMN_NS)
     ]
 
 
@@ -240,10 +245,10 @@ def _extract_script_elements(
 ) -> List[Script]:
     """Extract standalone script elements from the BPMN XML."""
     scripts = []
-    for scr in root.findall(".//camunda:script", BPMN_NS):
+    for scr in root.findall(XPATH_CAMUNDA_SCRIPT, BPMN_NS):
         node_id = find_parent_with_id(scr)
         node_name = id_to_name.get(node_id, node_id)
-        param_name = scr.getparent().get('name', DEFAULT_SCRIPT_NAME)
+        param_name = scr.getparent().get(ATTR_NAME, DEFAULT_SCRIPT_NAME)
         scripts.append(Script(scr.text or "", node_name, param_name))
     return scripts
 
@@ -259,11 +264,11 @@ def _extract_input_parameters(
     parameters = []
     scripts = []
 
-    for inp in root.findall(".//camunda:inputParameter", BPMN_NS):
+    for inp in root.findall(XPATH_CAMUNDA_INPUT_PARAMETER, BPMN_NS):
         node_name, param_name = _get_node_info(inp, id_to_name)
 
         # Check if it contains a script element
-        script_elem = inp.find(".//camunda:script", BPMN_NS)
+        script_elem = inp.find(XPATH_CAMUNDA_SCRIPT, BPMN_NS)
         if script_elem is not None:
             # Has script element - will be shown in scripts section
             parameter, _ = _process_script_element(

@@ -11,6 +11,10 @@ from .node_styles import BPMN_NS, NodeStyle, NODE_TYPE_CONFIG
 from .xml_utils import (
     parse_bpmn_xml_with_namespace, build_id_to_name_mapping
 )
+from .xml_constants import (
+    ATTR_ID, ATTR_NAME, ATTR_SOURCE_REF, ATTR_TARGET_REF,
+    XPATH_SEQUENCE_FLOW, XPATH_CONDITION_EXPRESSION
+)
 
 
 def _parse_bpmn_xml(xml_file: str):
@@ -59,10 +63,10 @@ def _get_node_name(element, default_name: Optional[str], node_id: str) -> str:
     """
     if default_name is not None:
         # Use default_name as fallback when element has no name attribute
-        return element.get("name", default_name)
+        return element.get(ATTR_NAME, default_name)
     else:
         # Use node_id as fallback when element has no name attribute
-        return element.get("name", node_id)
+        return element.get(ATTR_NAME, node_id)
 
 
 def _validate_node_ids(nodes: List[BpmnNode]) -> Set[str]:
@@ -166,7 +170,7 @@ def build_model(xml_file: str) -> BpmnDiagramModel:
 
         # XPath queries must include namespace mapping for BPMN elements
         for element in root.findall(xpath, ns):
-            node_id = element.get("id")
+            node_id = element.get(ATTR_ID)
             # Use standardized name extraction helper
             name = _get_node_name(element, default_name, node_id)
 
@@ -185,14 +189,14 @@ def build_model(xml_file: str) -> BpmnDiagramModel:
     condition_counter = 1
 
     # Find all sequenceFlow elements (BPMN namespace required)
-    for flow in root.findall(".//bpmn:sequenceFlow", ns):
-        source_id = flow.get("sourceRef")
-        target_id = flow.get("targetRef")
-        flow_name = flow.get("name", "")
+    for flow in root.findall(XPATH_SEQUENCE_FLOW, ns):
+        source_id = flow.get(ATTR_SOURCE_REF)
+        target_id = flow.get(ATTR_TARGET_REF)
+        flow_name = flow.get(ATTR_NAME, "")
 
         # Check for condition expression within the sequence flow
         # XPath query uses BPMN namespace
-        condition_elem = flow.find(".//bpmn:conditionExpression", ns)
+        condition_elem = flow.find(XPATH_CONDITION_EXPRESSION, ns)
         condition_text = None
         if condition_elem is not None and condition_elem.text:
             condition_text = condition_elem.text.strip()

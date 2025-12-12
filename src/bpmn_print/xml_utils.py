@@ -10,6 +10,8 @@ from typing import Dict, Tuple
 from lxml import etree
 from lxml.etree import _Element, XMLSyntaxError
 
+from .xml_constants import ATTR_ID, ATTR_NAME, XPATH_ALL_WITH_ID
+
 
 def parse_bpmn_xml(xml_file: str) -> _Element:
     """Parse a BPMN XML file and return the root element.
@@ -100,6 +102,6 @@ def build_id_to_name_mapping(root: _Element) -> Dict[str, str]:
         (or IDs if no name exists)
     """
     return {
-        elem.get('id'): elem.get('name', elem.get('id'))
-        for elem in root.findall(".//*[@id]")
+        elem.get(ATTR_ID): elem.get(ATTR_NAME, elem.get(ATTR_ID))
+        for elem in root.findall(XPATH_ALL_WITH_ID)
     }

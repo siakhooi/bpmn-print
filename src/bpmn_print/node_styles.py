@@ -4,6 +4,12 @@ This module contains all styling constants and node type configurations
 for rendering BPMN diagrams with Graphviz.
 """
 
+from .xml_constants import (
+    XPATH_START_EVENT, XPATH_END_EVENT, XPATH_TASK,
+    XPATH_SERVICE_TASK, XPATH_CALL_ACTIVITY,
+    XPATH_EXCLUSIVE_GATEWAY, XPATH_PARALLEL_GATEWAY
+)
+
 # BPMN namespace mapping for XML parsing
 # Maps the "bpmn" prefix to the official BPMN 2.0 namespace URI.
 # This is used with lxml's findall() and find() methods to query
@@ -37,7 +43,7 @@ class NodeStyle:
 # the BPMN_NS namespace mapping when calling findall() or find()
 NODE_TYPE_CONFIG = {
     "startEvent": {
-        "xpath": ".//bpmn:startEvent",  # XPath with BPMN namespace prefix
+        "xpath": XPATH_START_EVENT,
         "default_name": "Start",
         "shape": "circle",
         "style": "filled",
@@ -47,7 +53,7 @@ NODE_TYPE_CONFIG = {
         "fixedsize": "true",
     },
     "endEvent": {
-        "xpath": ".//bpmn:endEvent",
+        "xpath": XPATH_END_EVENT,
         "default_name": "End",
         "shape": "doublecircle",
         "style": "filled",
@@ -57,14 +63,14 @@ NODE_TYPE_CONFIG = {
         "fixedsize": "true",
     },
     "task": {
-        "xpath": ".//bpmn:task",
+        "xpath": XPATH_TASK,
         "default_name": None,  # Use node_id as fallback
         "shape": "box",
         "style": "rounded,filled",
         "fillcolor": NodeStyle.TASK_COLOR,
     },
     "serviceTask": {
-        "xpath": ".//bpmn:serviceTask",
+        "xpath": XPATH_SERVICE_TASK,
         "default_name": None,  # Use node_id as fallback
         "shape": "box",
         "style": "rounded,filled",
@@ -72,7 +78,7 @@ NODE_TYPE_CONFIG = {
         "penwidth": "2",
     },
     "callActivity": {
-        "xpath": ".//bpmn:callActivity",
+        "xpath": XPATH_CALL_ACTIVITY,
         "default_name": None,  # Use node_id as fallback
         "shape": "box",
         "style": "rounded,filled,bold",
@@ -80,14 +86,14 @@ NODE_TYPE_CONFIG = {
         "penwidth": "3",
     },
     "exclusiveGateway": {
-        "xpath": ".//bpmn:exclusiveGateway",
+        "xpath": XPATH_EXCLUSIVE_GATEWAY,
         "default_name": "X",
         "shape": "diamond",
         "style": "filled",
         "fillcolor": NodeStyle.EXCLUSIVE_GATEWAY_COLOR,
     },
     "parallelGateway": {
-        "xpath": ".//bpmn:parallelGateway",
+        "xpath": XPATH_PARALLEL_GATEWAY,
         "default_name": "+",
         "shape": "diamond",
         "style": "filled",
