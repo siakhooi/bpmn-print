@@ -51,8 +51,8 @@ def parse_bpmn_xml(xml_file: str) -> _Element:
 
 
 def parse_bpmn_xml_with_namespace(
-    xml_file: str, namespace: dict
-) -> Tuple[_Element, dict]:
+    xml_file: str, namespace: Dict[str, str]
+) -> Tuple[_Element, Dict[str, str]]:
     """Parse a BPMN XML file and return root element with namespace mapping.
 
     This is a convenience function for cases where the namespace mapping

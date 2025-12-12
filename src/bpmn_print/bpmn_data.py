@@ -151,7 +151,9 @@ def _get_node_info(
         id_to_name: Mapping from element IDs to their names
 
     Returns:
-        Tuple of (node_name, param_name)
+        Tuple of (node_name, param_name) where:
+        - node_name: Name of the parent node containing this element
+        - param_name: Name attribute of the element or default value
     """
     node_id = find_parent_with_id(element)
     node_name = id_to_name.get(node_id, node_id)
@@ -177,7 +179,7 @@ def _create_parameter(
 
 def _process_script_element(
     node_name: str, param_name: str
-) -> Tuple[Parameter, Optional[Script]]:
+) -> Tuple[Parameter, None]:
     """Process an input parameter that contains a script element.
 
     Args:
@@ -185,8 +187,8 @@ def _process_script_element(
         param_name: Name of the parameter
 
     Returns:
-        Tuple of (Parameter, Script or None). Script is None because
-        standalone script elements are handled separately.
+        Tuple of (Parameter, None). The second element is always None
+        because standalone script elements are handled separately.
     """
     parameter = _create_parameter(
         node_name, param_name, JEXL_SCRIPT_PLACEHOLDER, True
@@ -205,8 +207,9 @@ def _process_text_content(
         param_name: Name of the parameter
 
     Returns:
-        Tuple of (Parameter, Script or None). Script is included if
-        the text is a JEXL expression.
+        Tuple of (Parameter, Optional[Script]) where:
+        - Parameter: Always returned with the parameter information
+        - Script: Included if text is a JEXL expression, None otherwise
     """
     if _is_jexl_expression(text):
         # JEXL expression - add to scripts
@@ -302,8 +305,14 @@ def _extract_input_parameters(
 ) -> Tuple[List[Parameter], List[Script]]:
     """Extract input parameters and their associated scripts.
 
+    Args:
+        root: Root element of the BPMN XML tree
+        id_to_name: Mapping from element IDs to their names
+
     Returns:
-        tuple: (parameters, scripts) lists
+        Tuple of (parameters, scripts) where:
+        - parameters: List of Parameter instances
+        - scripts: List of Script instances for JEXL expressions
     """
     parameters = []
     scripts = []
