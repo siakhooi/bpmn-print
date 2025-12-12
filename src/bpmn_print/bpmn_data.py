@@ -305,6 +305,34 @@ def _extract_script_elements(
     return scripts
 
 
+def _process_single_input_parameter(
+    inp: _Element, node_name: str, param_name: str
+) -> Tuple[Parameter, Optional[Script]]:
+    """Process a single input parameter element.
+
+    Args:
+        inp: Input parameter XML element
+        node_name: Name of the containing node
+        param_name: Name of the parameter
+
+    Returns:
+        Tuple of (Parameter, Optional[Script])
+    """
+    # Check if it contains a script element
+    script_elem = inp.find(XPATH_CAMUNDA_SCRIPT, BPMN_NS)
+    if script_elem is not None:
+        # Has script element - will be shown in scripts section
+        return _process_script_element(node_name, param_name)
+
+    # Check if it has text content
+    if inp.text:
+        # Has text content - may be JEXL expression or simple value
+        return _process_text_content(inp.text, node_name, param_name)
+
+    # Empty or no content
+    return _create_parameter(node_name, param_name, '', False), None
+
+
 def _extract_input_parameters(
     root: _Element, id_to_name: Dict[str, str]
 ) -> Tuple[List[Parameter], List[Script]]:
@@ -325,26 +353,13 @@ def _extract_input_parameters(
     for inp in root.findall(XPATH_CAMUNDA_INPUT_PARAMETER, BPMN_NS):
         node_name, param_name = _get_node_info(inp, id_to_name)
 
-        # Check if it contains a script element
-        script_elem = inp.find(XPATH_CAMUNDA_SCRIPT, BPMN_NS)
-        if script_elem is not None:
-            # Has script element - will be shown in scripts section
-            parameter, _ = _process_script_element(
-                node_name, param_name
-            )
-            parameters.append(parameter)
-        elif inp.text:
-            # Has text content - may be JEXL expression or simple value
-            parameter, script = _process_text_content(
-                inp.text, node_name, param_name
-            )
-            parameters.append(parameter)
-            if script is not None:
-                scripts.append(script)
-        else:
-            # Empty or other
-            parameter = _create_parameter(node_name, param_name, '', False)
-            parameters.append(parameter)
+        # Process the parameter and check for associated script
+        parameter, script = _process_single_input_parameter(
+            inp, node_name, param_name
+        )
+        parameters.append(parameter)
+        if script is not None:
+            scripts.append(script)
 
     return parameters, scripts
 
