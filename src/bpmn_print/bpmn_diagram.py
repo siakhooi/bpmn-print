@@ -313,6 +313,47 @@ def _render_nodes(graph, model: BpmnDiagramModel):
         graph.node(node.node_id, node.name, **style_attrs)
 
 
+def _render_edge_with_condition(graph, edge: BpmnEdge):
+    """Render an edge with a conditional expression (numbered label).
+
+    Args:
+        graph: graphviz.Digraph instance
+        edge: BpmnEdge with a condition
+    """
+    graph.edge(
+        edge.source_id,
+        edge.target_id,
+        label=edge.label,
+        fontsize=NodeStyle.CONDITION_FONT_SIZE,
+        fontcolor=NodeStyle.CONDITION_FONT_COLOR
+    )
+
+
+def _render_edge_with_label(graph, edge: BpmnEdge):
+    """Render an edge with a name label (non-conditional).
+
+    Args:
+        graph: graphviz.Digraph instance
+        edge: BpmnEdge with a label
+    """
+    graph.edge(
+        edge.source_id,
+        edge.target_id,
+        label=edge.label,
+        fontsize=NodeStyle.FLOW_NAME_FONT_SIZE
+    )
+
+
+def _render_plain_edge(graph, edge: BpmnEdge):
+    """Render a plain edge without any label.
+
+    Args:
+        graph: graphviz.Digraph instance
+        edge: BpmnEdge without label or condition
+    """
+    graph.edge(edge.source_id, edge.target_id)
+
+
 def _render_edges(graph, model: BpmnDiagramModel):
     """Add all edges from the model to the graph.
 
@@ -322,25 +363,11 @@ def _render_edges(graph, model: BpmnDiagramModel):
     """
     for edge in model.edges:
         if edge.condition:
-            # Conditional edge with numbered label
-            graph.edge(
-                edge.source_id,
-                edge.target_id,
-                label=edge.label,
-                fontsize=NodeStyle.CONDITION_FONT_SIZE,
-                fontcolor=NodeStyle.CONDITION_FONT_COLOR
-            )
+            _render_edge_with_condition(graph, edge)
         elif edge.label:
-            # Edge with name label
-            graph.edge(
-                edge.source_id,
-                edge.target_id,
-                label=edge.label,
-                fontsize=NodeStyle.FLOW_NAME_FONT_SIZE
-            )
+            _render_edge_with_label(graph, edge)
         else:
-            # Plain edge without label
-            graph.edge(edge.source_id, edge.target_id)
+            _render_plain_edge(graph, edge)
 
 
 def render_model(model: BpmnDiagramModel, png_out: str):
