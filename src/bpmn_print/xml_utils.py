@@ -10,6 +10,7 @@ from typing import Dict, Tuple
 from lxml import etree
 from lxml.etree import _Element, XMLSyntaxError
 
+from .errors import BpmnFileError, BpmnParseError
 from .xml_constants import ATTR_ID, ATTR_NAME, XPATH_ALL_WITH_ID
 
 
@@ -27,32 +28,24 @@ def parse_bpmn_xml(xml_file: str) -> _Element:
         Root element of the parsed XML tree
 
     Raises:
-        FileNotFoundError: If the XML file does not exist or cannot be read
-        ValueError: If the path is not a file
-        XMLSyntaxError: If the XML file is malformed or invalid
+        BpmnFileError: If the XML file does not exist, is not a file,
+            or cannot be read
+        BpmnParseError: If the XML file is malformed or invalid
     """
     # Check if file exists before attempting to parse
     file_path = Path(xml_file)
     if not file_path.exists():
-        raise FileNotFoundError(
-            f"BPMN file not found: {xml_file}"
-        )
+        raise BpmnFileError.not_found(xml_file)
 
     if not file_path.is_file():
-        raise ValueError(
-            f"Path is not a file: {xml_file}"
-        )
+        raise BpmnFileError.not_a_file(xml_file)
 
     try:
         tree = etree.parse(xml_file)
     except OSError as e:
-        raise FileNotFoundError(
-            f"BPMN file cannot be read: {xml_file}"
-        ) from e
+        raise BpmnFileError.not_readable(xml_file, str(e)) from e
     except XMLSyntaxError as e:
-        raise XMLSyntaxError(
-            f"Invalid XML syntax in BPMN file: {xml_file}"
-        ) from e
+        raise BpmnParseError.invalid_xml(xml_file, str(e)) from e
 
     return tree.getroot()
 
@@ -73,9 +66,9 @@ def parse_bpmn_xml_with_namespace(
         Tuple of (root_element, namespace_dict) for XPath queries
 
     Raises:
-        FileNotFoundError: If the XML file does not exist or cannot be read
-        ValueError: If the path is not a file
-        XMLSyntaxError: If the XML file is malformed or invalid
+        BpmnFileError: If the XML file does not exist, is not a file,
+            or cannot be read
+        BpmnParseError: If the XML file is malformed or invalid
     """
     root = parse_bpmn_xml(xml_file)
     return root, namespace

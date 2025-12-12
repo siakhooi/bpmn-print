@@ -346,9 +346,9 @@ def extract(xml_file: str) -> BpmnExtractResult:
         Supports tuple unpacking: (nodes, parameters, scripts)
 
     Raises:
-        FileNotFoundError: If the XML file does not exist or cannot be read
-        ValueError: If the path is not a file
-        XMLSyntaxError: If the XML file is malformed or invalid
+        BpmnFileError: If the XML file does not exist, is not a file,
+            or cannot be read
+        BpmnParseError: If the XML file is malformed or invalid
     """
     root = parse_bpmn_xml(xml_file)
 

@@ -7,6 +7,7 @@ import graphviz
 from .diagram_model import (
     BpmnDiagramModel, BpmnEdge, BpmnNode, Condition
 )
+from .errors import BpmnRenderError
 from .node_styles import BPMN_NS, NodeStyle, NODE_TYPE_CONFIG
 from .xml_utils import (
     parse_bpmn_xml_with_namespace, build_id_to_name_mapping
@@ -33,9 +34,9 @@ def _parse_bpmn_xml(xml_file: str):
         BPMN_NS containing the BPMN namespace mapping for XPath queries.
 
     Raises:
-        FileNotFoundError: If the XML file does not exist or cannot be read
-        ValueError: If the path is not a file
-        XMLSyntaxError: If the XML file is malformed or invalid
+        BpmnFileError: If the XML file does not exist, is not a file,
+            or cannot be read
+        BpmnParseError: If the XML file is malformed or invalid
     """
     return parse_bpmn_xml_with_namespace(xml_file, BPMN_NS)
 
@@ -216,8 +217,9 @@ def build_model(xml_file: str) -> BpmnDiagramModel:
         BpmnDiagramModel containing all nodes and edges
 
     Raises:
-        FileNotFoundError: If the XML file does not exist or cannot be read
-        XMLSyntaxError: If the XML file is malformed or invalid
+        BpmnFileError: If the XML file does not exist, is not a file,
+            or cannot be read
+        BpmnParseError: If the XML file is malformed or invalid
 
     Warns:
         UserWarning: If sequence flows reference non-existent nodes or
@@ -352,8 +354,8 @@ def render_model(model: BpmnDiagramModel, png_out: str):
             omitted.
 
     Raises:
-        ValueError: If the output directory cannot be created or is invalid
-        RuntimeError: If Graphviz rendering fails
+        BpmnRenderError: If the output directory cannot be created or if
+            Graphviz rendering fails
     """
     graph = _create_graph()
     _render_nodes(graph, model)
@@ -369,16 +371,14 @@ def render_model(model: BpmnDiagramModel, png_out: str):
         try:
             output_dir.mkdir(parents=True, exist_ok=True)
         except OSError as e:
-            raise ValueError(
-                f"Cannot create output directory: {output_dir}"
+            raise BpmnRenderError.output_dir_error(
+                str(output_dir), str(e)
             ) from e
 
     try:
         graph.render(str(output_path), cleanup=True)
     except Exception as e:
-        raise RuntimeError(
-            f"Failed to render diagram to {png_out}: {e}"
-        ) from e
+        raise BpmnRenderError.render_failed(png_out, str(e)) from e
 
 
 def render(xml_file: str, png_out: str) -> List[Condition]:
@@ -403,10 +403,11 @@ def render(xml_file: str, png_out: str) -> List[Condition]:
         number, source_name, target_name, condition = condition_obj
 
     Raises:
-        FileNotFoundError: If the XML file does not exist or cannot be read
-        XMLSyntaxError: If the XML file is malformed or invalid
-        ValueError: If the output directory cannot be created or is invalid
-        RuntimeError: If Graphviz rendering fails
+        BpmnFileError: If the XML file does not exist, is not a file,
+            or cannot be read
+        BpmnParseError: If the XML file is malformed or invalid
+        BpmnRenderError: If the output directory cannot be created or if
+            Graphviz rendering fails
 
     Warns:
         UserWarning: If sequence flows reference non-existent nodes or
