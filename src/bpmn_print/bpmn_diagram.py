@@ -8,7 +8,9 @@ from .diagram_model import (
     BpmnDiagramModel, BpmnEdge, BpmnNode, Condition
 )
 from .node_styles import BPMN_NS, NodeStyle, NODE_TYPE_CONFIG
-from .xml_utils import parse_bpmn_xml_with_namespace
+from .xml_utils import (
+    parse_bpmn_xml_with_namespace, build_id_to_name_mapping
+)
 
 
 def _parse_bpmn_xml(xml_file: str):
@@ -61,35 +63,6 @@ def _get_node_name(element, default_name: Optional[str], node_id: str) -> str:
     else:
         # Use node_id as fallback when element has no name attribute
         return element.get("name", node_id)
-
-
-def _build_id_to_name_mapping(root):
-    """Build a mapping from element IDs to their names.
-
-    This function searches for all elements with an "id" attribute in the
-    XML tree, regardless of namespace. This is intentional because:
-    1. BPMN elements may have IDs
-    2. Other XML elements (e.g., from extensions) may also have IDs
-    3. We need to map all IDs to names for reference resolution
-
-    Note: This XPath query (".//*[@id]") intentionally does not use the
-    BPMN namespace prefix because we want to find ALL elements with IDs,
-    not just BPMN elements.
-
-    Args:
-        root: Root element of the BPMN XML tree
-
-    Returns:
-        Dictionary mapping element IDs to names
-    """
-    # XPath without namespace: finds any element with @id attribute
-    # This is intentional to capture IDs from all namespaces
-    id_to_name = {}
-    for elem in root.findall(".//*[@id]"):
-        elem_id = elem.get("id")
-        elem_name = elem.get("name", elem_id)
-        id_to_name[elem_id] = elem_name
-    return id_to_name
 
 
 def _validate_node_ids(nodes: List[BpmnNode]) -> Set[str]:
@@ -180,7 +153,7 @@ def build_model(xml_file: str) -> BpmnDiagramModel:
             have missing IDs
     """
     root, ns = _parse_bpmn_xml(xml_file)
-    id_to_name = _build_id_to_name_mapping(root)
+    id_to_name = build_id_to_name_mapping(root)
 
     # Extract all nodes using XPath queries with BPMN namespace
     # All XPath queries in NODE_TYPE_CONFIG use the "bpmn:" prefix

@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Tuple
 
 from lxml.etree import _Element
 
-from .xml_utils import parse_bpmn_xml
+from .xml_utils import parse_bpmn_xml, build_id_to_name_mapping
 
 # BPMN namespace constants
 BPMN_NS = {
@@ -129,14 +129,6 @@ def _simplify_class_name(class_name: str) -> str:
         Simple class name (e.g., 'MyClass') or empty string
     """
     return class_name.rsplit('.', 1)[-1] if class_name else ''
-
-
-def _build_id_to_name_mapping(root: _Element) -> Dict[str, str]:
-    """Build a mapping from element IDs to their names."""
-    return {
-        elem.get('id'): elem.get('name', elem.get('id'))
-        for elem in root.findall(".//*[@id]")
-    }
 
 
 def _get_node_info(
@@ -312,7 +304,7 @@ def extract(xml_file: str) -> BpmnExtractResult:
     root = parse_bpmn_xml(xml_file)
 
     # Build ID to name mapping
-    id_to_name = _build_id_to_name_mapping(root)
+    id_to_name = build_id_to_name_mapping(root)
 
     # Extract nodes
     nodes = []

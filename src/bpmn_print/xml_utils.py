@@ -5,7 +5,7 @@ the bpmn_print package to avoid code duplication.
 """
 
 from pathlib import Path
-from typing import Tuple
+from typing import Dict, Tuple
 
 from lxml import etree
 from lxml.etree import _Element, XMLSyntaxError
@@ -77,3 +77,29 @@ def parse_bpmn_xml_with_namespace(
     """
     root = parse_bpmn_xml(xml_file)
     return root, namespace
+
+
+def build_id_to_name_mapping(root: _Element) -> Dict[str, str]:
+    """Build a mapping from element IDs to their names.
+
+    This function searches for all elements with an "id" attribute in the
+    XML tree, regardless of namespace. This is intentional because:
+    1. BPMN elements may have IDs
+    2. Other XML elements (e.g., from extensions) may also have IDs
+    3. We need to map all IDs to names for reference resolution
+
+    Note: This XPath query (".//*[@id]") intentionally does not use the
+    BPMN namespace prefix because we want to find ALL elements with IDs,
+    not just BPMN elements.
+
+    Args:
+        root: Root element of the BPMN XML tree
+
+    Returns:
+        Dictionary mapping element IDs to their names
+        (or IDs if no name exists)
+    """
+    return {
+        elem.get('id'): elem.get('name', elem.get('id'))
+        for elem in root.findall(".//*[@id]")
+    }
