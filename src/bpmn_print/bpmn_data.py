@@ -173,12 +173,11 @@ def _create_parameter(
 
 
 def _process_script_element(
-    script_elem: _Element, node_name: str, param_name: str
+    node_name: str, param_name: str
 ) -> Tuple[Parameter, Optional[Script]]:
     """Process an input parameter that contains a script element.
 
     Args:
-        script_elem: The script XML element
         node_name: Name of the node this parameter belongs to
         param_name: Name of the parameter
 
@@ -275,7 +274,7 @@ def _extract_input_parameters(
         if script_elem is not None:
             # Has script element - will be shown in scripts section
             parameter, _ = _process_script_element(
-                script_elem, node_name, param_name
+                node_name, param_name
             )
             parameters.append(parameter)
         elif inp.text:

@@ -16,17 +16,17 @@ class Condition:
     This dataclass provides a structured representation of conditional
     branches, making it easier to work with conditions than using tuples.
     Supports tuple unpacking for backward compatibility:
-        number, source_name, target_name, condition = condition_obj
+        number, source_name, target_name, expression = condition_obj
     """
     number: int
     source_name: str
     target_name: str
-    condition: str
+    expression: str
 
     def __iter__(self):
         """Allow tuple unpacking for backward compatibility."""
         return iter((self.number, self.source_name, self.target_name,
-                    self.condition))
+                    self.expression))
 
 
 @dataclass
@@ -83,7 +83,7 @@ class BpmnDiagramModel:
             number=edge.condition_number,
             source_name=source_name,
             target_name=target_name,
-            condition=edge.condition
+            expression=edge.condition
         )
 
     def get_conditions(self) -> List[Condition]:
