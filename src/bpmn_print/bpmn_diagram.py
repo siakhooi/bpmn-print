@@ -284,7 +284,7 @@ def build_model(xml_file: str) -> BpmnDiagramModel:
     )
 
 
-def _create_graph():
+def _create_graph() -> graphviz.Digraph:
     """Create and configure a Graphviz Digraph for BPMN rendering.
 
     Uses configuration from GraphConfig for consistent styling.
@@ -298,7 +298,7 @@ def _create_graph():
     return graph
 
 
-def _render_nodes(graph, model: BpmnDiagramModel):
+def _render_nodes(graph: graphviz.Digraph, model: BpmnDiagramModel) -> None:
     """Add all nodes from the model to the graph.
 
     Args:
@@ -313,7 +313,9 @@ def _render_nodes(graph, model: BpmnDiagramModel):
         graph.node(node.node_id, node.name, **style_attrs)
 
 
-def _render_edge_with_condition(graph, edge: BpmnEdge):
+def _render_edge_with_condition(
+    graph: graphviz.Digraph, edge: BpmnEdge
+) -> None:
     """Render an edge with a conditional expression (numbered label).
 
     Args:
@@ -329,7 +331,7 @@ def _render_edge_with_condition(graph, edge: BpmnEdge):
     )
 
 
-def _render_edge_with_label(graph, edge: BpmnEdge):
+def _render_edge_with_label(graph: graphviz.Digraph, edge: BpmnEdge) -> None:
     """Render an edge with a name label (non-conditional).
 
     Args:
@@ -344,7 +346,7 @@ def _render_edge_with_label(graph, edge: BpmnEdge):
     )
 
 
-def _render_plain_edge(graph, edge: BpmnEdge):
+def _render_plain_edge(graph: graphviz.Digraph, edge: BpmnEdge) -> None:
     """Render a plain edge without any label.
 
     Args:
@@ -354,7 +356,7 @@ def _render_plain_edge(graph, edge: BpmnEdge):
     graph.edge(edge.source_id, edge.target_id)
 
 
-def _render_edges(graph, model: BpmnDiagramModel):
+def _render_edges(graph: graphviz.Digraph, model: BpmnDiagramModel) -> None:
     """Add all edges from the model to the graph.
 
     Args:
