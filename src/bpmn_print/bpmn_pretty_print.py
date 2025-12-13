@@ -6,6 +6,7 @@ from bpmn_print import console
 from . import bpmn_diagram
 from . import bpmn_data
 from . import pdf
+from .errors import BpmnRenderError, BpmnFileError
 
 
 @dataclass
@@ -64,11 +65,18 @@ def pretty_print(
     input_folder: str, output_folder: str, keep_png: bool = False
 ) -> None:
     output_path = Path(output_folder)
-    output_path.mkdir(parents=True, exist_ok=True)
+    # Create output folder with error handling
+    try:
+        output_path.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        raise BpmnRenderError.output_dir_error(output_folder, str(e)) from e
 
     input_path = Path(input_folder)
-    # Collect BPMN files to process
-    bpmn_files = [f.name for f in input_path.glob("*.bpmn")]
+    # Collect BPMN files to process with error handling
+    try:
+        bpmn_files = [f.name for f in input_path.glob("*.bpmn")]
+    except OSError as e:
+        raise BpmnFileError.not_readable(input_folder, str(e)) from e
 
     if not bpmn_files:
         console.info(f"No BPMN files found in {input_folder}")
