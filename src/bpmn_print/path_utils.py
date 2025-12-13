@@ -1,13 +1,12 @@
-"""Path handling utilities for safe file operations."""
-
 from pathlib import Path
 from typing import Tuple
 
 from .errors import BpmnRenderError
 
 
-def prepare_output_path(output_path: str,
-                        auto_extension: str = "") -> Tuple[Path, Path]:
+def prepare_output_path(
+    output_path: str, auto_extension: str = ""
+) -> Tuple[Path, Path]:
     """Prepare an output path by ensuring the directory exists.
 
     This utility handles:

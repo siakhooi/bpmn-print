@@ -5,10 +5,12 @@
     "editor.rulers": [79],
     "editor.wordWrapColumn": 79,
     "editor.formatOnSave": true,
+    "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.codeActionsOnSave": {
       "source.organizeImports": "explicit"
     }
   },
+  "black-formatter.args": ["--line-length=79"],
   "files.trimTrailingWhitespace": true,
   "files.insertFinalNewline": true
 }
