@@ -1,7 +1,8 @@
 import warnings
-from typing import List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 import graphviz
+from lxml.etree import _Element
 
 from .diagram_model import (
     BpmnDiagramModel, BpmnEdge, BpmnNode, Condition
@@ -24,7 +25,7 @@ from .xml_constants import (
 CONDITION_START_NUMBER = 1
 
 
-def _parse_bpmn_xml(xml_file: str):
+def _parse_bpmn_xml(xml_file: str) -> Tuple[_Element, Dict[str, str]]:
     """Parse BPMN XML file and return root element and namespace mapping.
 
     This function parses the BPMN XML file and returns the root element
@@ -376,7 +377,7 @@ def _render_edges(graph: graphviz.Digraph, model: BpmnDiagramModel) -> None:
             _render_plain_edge(graph, edge)
 
 
-def render_model(model: BpmnDiagramModel, png_out: str):
+def render_model(model: BpmnDiagramModel, png_out: str) -> None:
     """Render a BpmnDiagramModel to a PNG file using Graphviz.
 
     Note: Graphviz's render() method automatically appends the format extension
