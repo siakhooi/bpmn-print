@@ -58,5 +58,3 @@ def test_run_wrong_options(monkeypatch, capsys, options):
 
     captured = capsys.readouterr()
     assert captured.err == expected_output
-    # assert "usage: bpmn-print [-h] [-v]" in captured.err
-    # assert "bpmn-print: error: unrecognized arguments:" in captured.err
