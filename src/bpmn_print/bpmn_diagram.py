@@ -13,7 +13,7 @@ from .node_styles import (
 )
 from .path_utils import prepare_output_path
 from .xml_utils import (
-    parse_bpmn_xml_with_namespace, build_id_to_name_mapping
+    parse_bpmn_xml, build_id_to_name_mapping
 )
 from .xml_constants import (
     ATTR_ID, ATTR_NAME, ATTR_SOURCE_REF, ATTR_TARGET_REF,
@@ -45,7 +45,7 @@ def _parse_bpmn_xml(xml_file: str) -> Tuple[_Element, Dict[str, str]]:
             or cannot be read
         BpmnParseError: If the XML file is malformed or invalid
     """
-    return parse_bpmn_xml_with_namespace(xml_file, BPMN_NS)
+    return parse_bpmn_xml(xml_file), BPMN_NS
 
 
 def _get_node_name(element, default_name: Optional[str], node_id: str) -> str:
