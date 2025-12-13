@@ -1,9 +1,12 @@
 # BPMN and Camunda namespace mappings for XML parsing
 # These dictionaries map namespace prefixes to their official URIs.
 # Used with lxml's findall() and find() methods to query elements.
+# Note: These are XML namespace identifiers, not actual HTTP endpoints.
+# The http:// URIs are defined by the BPMN/Camunda specifications and must
+# match exactly.
 BPMN_NS = {
-    "bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL",
-    "camunda": "http://camunda.org/schema/1.0/bpmn",
+    "bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL",  # NOSONAR
+    "camunda": "http://camunda.org/schema/1.0/bpmn",  # NOSONAR
 }
 
 # Individual namespace URIs for direct reference
