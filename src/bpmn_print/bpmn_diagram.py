@@ -455,4 +455,4 @@ def render(xml_file: str, png_out: str) -> List[Condition]:
     render_model(model, png_out)
 
     # Return conditions for backward compatibility
-    return model.get_conditions()
+    return model.conditions

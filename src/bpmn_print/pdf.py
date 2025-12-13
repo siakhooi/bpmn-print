@@ -151,8 +151,8 @@ def _create_condition_table(conditions: List) -> Table:
     """
     # Create table data
     table_data = [["#", "Condition"]]
-    for num, source, target, condition in conditions:
-        table_data.append([str(num), condition])
+    for cond in conditions:
+        table_data.append([str(cond.num), cond.expression])
 
     # Create and style table
     table = Table(
