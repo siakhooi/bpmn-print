@@ -1,0 +1,14 @@
+{
+  "editor.rulers": [79],
+  "editor.wordWrapColumn": 79,
+  "[python]": {
+    "editor.rulers": [79],
+    "editor.wordWrapColumn": 79,
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  },
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true
+}
