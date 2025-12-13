@@ -8,6 +8,11 @@ from . import bpmn_data
 from . import pdf
 from .errors import BpmnRenderError, BpmnFileError
 
+# File extension constants
+BPMN_EXTENSION = ".bpmn"
+PDF_EXTENSION = ".pdf"
+PNG_EXTENSION = ".png"
+
 
 @dataclass
 class ConversionConfig:
@@ -74,7 +79,7 @@ def pretty_print(
     input_path = Path(input_folder)
     # Collect BPMN files to process with error handling
     try:
-        bpmn_files = [f.name for f in input_path.glob("*.bpmn")]
+        bpmn_files = [f.name for f in input_path.glob(f"*{BPMN_EXTENSION}")]
     except OSError as e:
         raise BpmnFileError.not_readable(input_folder, str(e)) from e
 
@@ -87,8 +92,10 @@ def pretty_print(
     for file in bpmn_files:
         console.info(f"Processing {file}...")
         src_bpmn_file = str(input_path / file)
-        dest_pdf_path = output_path / file.replace(".bpmn", ".pdf")
-        png_file = dest_pdf_path.with_suffix(".png")
+        dest_pdf_path = output_path / file.replace(
+            BPMN_EXTENSION, PDF_EXTENSION
+        )
+        png_file = dest_pdf_path.with_suffix(PNG_EXTENSION)
 
         config = ConversionConfig(
             bpmn_file=src_bpmn_file,
