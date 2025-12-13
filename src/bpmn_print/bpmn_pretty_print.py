@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 from bpmn_print import console
 from . import bpmn_diagram
@@ -62,10 +63,12 @@ def convert_bpmn_to_pdf(config: ConversionConfig) -> None:
 def pretty_print(
     input_folder: str, output_folder: str, keep_png: bool = False
 ) -> None:
-    os.makedirs(output_folder, exist_ok=True)
+    output_path = Path(output_folder)
+    output_path.mkdir(parents=True, exist_ok=True)
 
+    input_path = Path(input_folder)
     # Collect BPMN files to process
-    bpmn_files = [f for f in os.listdir(input_folder) if f.endswith(".bpmn")]
+    bpmn_files = [f.name for f in input_path.glob("*.bpmn")]
 
     if not bpmn_files:
         console.info(f"No BPMN files found in {input_folder}")
@@ -75,15 +78,14 @@ def pretty_print(
 
     for file in bpmn_files:
         console.info(f"Processing {file}...")
-        src_bpmn_file = os.path.join(input_folder, file)
-        dest_pdf_path = os.path.join(
-            output_folder, file.replace(".bpmn", ".pdf")
-        )
-        png_file = dest_pdf_path.replace(".pdf", ".png")
+        src_bpmn_file = str(input_path / file)
+        dest_pdf_path = output_path / file.replace(".bpmn", ".pdf")
+        png_file = dest_pdf_path.with_suffix(".png")
+
         config = ConversionConfig(
             bpmn_file=src_bpmn_file,
-            pdf_path=dest_pdf_path,
-            png_file=png_file,
+            pdf_path=str(dest_pdf_path),
+            png_file=str(png_file),
             keep_png=keep_png
         )
         convert_bpmn_to_pdf(config)
