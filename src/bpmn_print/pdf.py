@@ -10,10 +10,13 @@ from reportlab.platypus import (
     TableStyle,
     Paragraph,
 )
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.styles import (
+    getSampleStyleSheet, ParagraphStyle, StyleSheet1
+)
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib import colors
+from reportlab.lib.colors import Color
 
 
 class PdfStyle:
@@ -108,7 +111,7 @@ class PdfData:
     jexl_scripts: List
 
 
-def _create_standard_table_style(bg_color) -> TableStyle:
+def _create_standard_table_style(bg_color: Color) -> TableStyle:
     """Create standard table style with configurable background color.
 
     This eliminates duplication of table styling across different table types.
@@ -229,7 +232,7 @@ def _create_parameter_table(parameters: List) -> Table:
 
 
 def _create_script_section(
-    scripts: List, styles, page_width: float
+    scripts: List, styles: StyleSheet1, page_width: float
 ) -> List:
     """Create flowables for JEXL script section.
 
