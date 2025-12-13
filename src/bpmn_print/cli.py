@@ -3,6 +3,7 @@ import sys
 from importlib.metadata import version
 
 from bpmn_print.bpmn_pretty_print import pretty_print
+from bpmn_print.errors import BpmnError
 import bpmn_print.console as console
 
 
@@ -35,6 +36,15 @@ def run() -> None:
 
     try:
         pretty_print(args.input_folder, args.output_folder, args.keep)
-    except Exception as e:
+    except BpmnError as e:
+        # Catch all BPMN-specific errors
         console.error(e)
         sys.exit(2)
+    except OSError as e:
+        # Catch file system errors
+        console.error(Exception(f"File system error: {e}"))
+        sys.exit(2)
+    except Exception as e:
+        # Re-raise unexpected errors for better debugging
+        console.error(Exception(f"Unexpected error: {e}"))
+        sys.exit(3)

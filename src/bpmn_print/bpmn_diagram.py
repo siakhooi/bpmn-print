@@ -403,6 +403,14 @@ def render_model(model: BpmnDiagramModel, png_out: str):
 
     try:
         graph.render(str(output_path), cleanup=True)
+    except graphviz.ExecutableNotFound as e:
+        raise BpmnRenderError.render_failed(
+            png_out, "Graphviz not installed or not in PATH"
+        ) from e
+    except graphviz.CalledProcessError as e:
+        raise BpmnRenderError.render_failed(
+            png_out, f"Graphviz rendering failed: {e}"
+        ) from e
     except Exception as e:
         raise BpmnRenderError.render_failed(png_out, str(e)) from e
 
