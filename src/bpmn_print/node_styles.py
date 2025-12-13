@@ -1,18 +1,15 @@
-"""Styling configuration for BPMN diagram nodes and edges.
-
-This module contains all styling constants and node type configurations
-for rendering BPMN diagrams with Graphviz.
-"""
-
 from .xml_constants import (
-    XPATH_START_EVENT, XPATH_END_EVENT, XPATH_TASK,
-    XPATH_SERVICE_TASK, XPATH_CALL_ACTIVITY,
-    XPATH_EXCLUSIVE_GATEWAY, XPATH_PARALLEL_GATEWAY
+    XPATH_START_EVENT,
+    XPATH_END_EVENT,
+    XPATH_TASK,
+    XPATH_SERVICE_TASK,
+    XPATH_CALL_ACTIVITY,
+    XPATH_EXCLUSIVE_GATEWAY,
+    XPATH_PARALLEL_GATEWAY,
 )
 
 
 class NodeStyle:
-    """Constants for node styling attributes."""
     # Event node dimensions
     EVENT_WIDTH = "0.6"
     EVENT_HEIGHT = "0.6"
@@ -33,11 +30,8 @@ class NodeStyle:
 
 
 class GraphConfig:
-    """Configuration for Graphviz graph rendering.
+    """Configuration for Graphviz graph rendering."""
 
-    This class centralizes all graph-level configuration settings,
-    making them easy to customize without modifying the rendering code.
-    """
     # Output format
     FORMAT = "png"
 
@@ -52,9 +46,6 @@ class GraphConfig:
     SPLINES = "polyline"
 
 
-# Node type configuration: maps BPMN element types to their styling
-# All XPath queries use the "bpmn:" prefix and must be executed with
-# the BPMN_NS namespace mapping when calling findall() or find()
 NODE_TYPE_CONFIG = {
     "startEvent": {
         "xpath": XPATH_START_EVENT,
