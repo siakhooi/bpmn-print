@@ -2,9 +2,9 @@ import argparse
 import sys
 from importlib.metadata import version
 
-from bpmn_print.bpmn_pretty_print import pretty_print
-from bpmn_print.errors import BpmnError
-import bpmn_print.console as console
+from .pretty_print import pretty_print
+from .errors import BpmnError
+from . import console
 
 
 def run() -> None:
@@ -23,14 +23,8 @@ def run() -> None:
         action="store_true",
         help="keep PNG files after PDF generation",
     )
-    parser.add_argument(
-        "input_folder",
-        help="input folder"
-    )
-    parser.add_argument(
-        "output_folder",
-        help="output folder"
-    )
+    parser.add_argument("input_folder", help="input folder")
+    parser.add_argument("output_folder", help="output folder")
 
     args = parser.parse_args()
 
