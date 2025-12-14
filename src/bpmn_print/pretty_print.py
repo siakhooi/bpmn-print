@@ -28,6 +28,7 @@ class ConversionConfig:
         png_file: Path to the intermediate PNG file for the diagram
         keep_png: Whether to keep the PNG file after PDF generation
     """
+
     bpmn_file: str
     pdf_path: str
     png_file: str
@@ -48,15 +49,15 @@ def convert_bpmn_to_pdf(config: ConversionConfig) -> None:
     branch_conditions = bpmn_diagram.render(context, config.png_file)
 
     # 2. Extract data using the same shared context (avoids re-parsing)
-    nodes, parameters, jexl_scripts = bpmn_data.extract(context)
+    result = bpmn_data.extract(context)
 
     # 3. Create PDF with grouped data
     pdf_data = pdf.PdfData(
         png_file=config.png_file,
         branch_conditions=branch_conditions,
-        nodes=nodes,
-        parameters=parameters,
-        jexl_scripts=jexl_scripts
+        nodes=result.nodes,
+        parameters=result.parameters,
+        jexl_scripts=result.scripts,
     )
     pdf.make(config.pdf_path, pdf_data)
 
@@ -105,7 +106,7 @@ def pretty_print(
             bpmn_file=src_bpmn_file,
             pdf_path=str(dest_pdf_path),
             png_file=str(png_file),
-            keep_png=keep_png
+            keep_png=keep_png,
         )
         convert_bpmn_to_pdf(config)
         console.info(f"✓ Generated {dest_pdf_path}")

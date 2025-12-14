@@ -11,7 +11,9 @@ from reportlab.platypus import (
     Paragraph,
 )
 from reportlab.lib.styles import (
-    getSampleStyleSheet, ParagraphStyle, StyleSheet1
+    getSampleStyleSheet,
+    ParagraphStyle,
+    StyleSheet1,
 )
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -25,6 +27,7 @@ class PdfStyle:
     This class centralizes all styling values used in PDF generation,
     making them easy to customize without modifying the rendering code.
     """
+
     # Document margins
     MARGIN_LEFT = 10 * mm
     MARGIN_RIGHT = 10 * mm
@@ -104,6 +107,7 @@ class PdfData:
         parameters: List of input parameters
         jexl_scripts: List of JEXL scripts
     """
+
     png_file: str
     branch_conditions: List
     nodes: List
@@ -129,11 +133,15 @@ def _create_standard_table_style(bg_color: Color) -> TableStyle:
             ("ALIGN", (0, 0), (-1, -1), "LEFT"),
             ("FONTNAME", (0, 0), (-1, 0), PdfStyle.HEADER_FONT_NAME),
             ("FONTSIZE", (0, 0), (-1, 0), PdfStyle.HEADER_FONT_SIZE),
-            ("BOTTOMPADDING", (0, 0), (-1, 0),
-             PdfStyle.HEADER_BOTTOM_PADDING),
+            ("BOTTOMPADDING", (0, 0), (-1, 0), PdfStyle.HEADER_BOTTOM_PADDING),
             ("BACKGROUND", (0, 1), (-1, -1), bg_color),
-            ("GRID", (0, 0), (-1, -1),
-             PdfStyle.GRID_LINE_WIDTH, PdfStyle.GRID_COLOR),
+            (
+                "GRID",
+                (0, 0),
+                (-1, -1),
+                PdfStyle.GRID_LINE_WIDTH,
+                PdfStyle.GRID_COLOR,
+            ),
             ("FONTSIZE", (0, 1), (-1, -1), PdfStyle.BODY_FONT_SIZE),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ]
@@ -157,8 +165,7 @@ def _create_condition_table(conditions: List) -> Table:
     # Create and style table
     table = Table(
         table_data,
-        colWidths=[PdfStyle.CONDITION_COL_NUMBER,
-                   PdfStyle.CONDITION_COL_TEXT]
+        colWidths=[PdfStyle.CONDITION_COL_NUMBER, PdfStyle.CONDITION_COL_TEXT],
     )
 
     # Apply standard style with custom alignment for # column
@@ -173,21 +180,24 @@ def _create_node_table(nodes: List) -> Table:
     """Create a table for BPMN nodes (activities and tasks).
 
     Args:
-        nodes: List of (node_name, node_type, detail) tuples
+        nodes: List of Node objects
 
     Returns:
         Styled Table object
     """
     # Create table data
     table_data = [["Node Name", "Type", "Called Element / Class"]]
-    for node_name, node_type, detail in nodes:
-        table_data.append([node_name, node_type, detail])
+    for node in nodes:
+        table_data.append([node.name, node.type, node.target])
 
     # Create and style table
     table = Table(
         table_data,
-        colWidths=[PdfStyle.NODE_COL_NAME, PdfStyle.NODE_COL_TYPE,
-                   PdfStyle.NODE_COL_DETAIL]
+        colWidths=[
+            PdfStyle.NODE_COL_NAME,
+            PdfStyle.NODE_COL_TYPE,
+            PdfStyle.NODE_COL_DETAIL,
+        ],
     )
     table.setStyle(_create_standard_table_style(PdfStyle.NODE_BG_COLOR))
 
@@ -198,33 +208,34 @@ def _create_parameter_table(parameters: List) -> Table:
     """Create a table for input parameters.
 
     Args:
-        parameters: List of (node_name, param_name, value, has_script) tuples
-                   Note: has_script is currently unused but reserved for
-                   future styling enhancements.
+        parameters: List of Parameter objects
 
     Returns:
         Styled Table object
     """
     # Create table data
     table_data = [["Node Name", "Parameter Name", "Value"]]
-    for node_name, param_name, value, has_script in parameters:
-        # Note: has_script could be used in the future to apply different
+    for param in parameters:
+        # Note: param.has_script could be used in the future to apply different
         # styling to parameters with associated JEXL scripts
 
         # Truncate long values for table display
         max_len = PdfStyle.MAX_VALUE_LENGTH
-        if len(value) <= max_len:
-            display_value = value
+        if len(param.value) <= max_len:
+            display_value = param.value
         else:
             suffix_len = PdfStyle.TRUNCATE_SUFFIX_LENGTH
-            display_value = value[:max_len - suffix_len] + "..."
-        table_data.append([node_name, param_name, display_value])
+            display_value = param.value[: max_len - suffix_len] + "..."
+        table_data.append([param.node_name, param.param_name, display_value])
 
     # Create and style table
     table = Table(
         table_data,
-        colWidths=[PdfStyle.PARAM_COL_NODE, PdfStyle.PARAM_COL_NAME,
-                   PdfStyle.PARAM_COL_VALUE]
+        colWidths=[
+            PdfStyle.PARAM_COL_NODE,
+            PdfStyle.PARAM_COL_NAME,
+            PdfStyle.PARAM_COL_VALUE,
+        ],
     )
     table.setStyle(_create_standard_table_style(PdfStyle.PARAM_BG_COLOR))
 
@@ -237,7 +248,7 @@ def _create_script_section(
     """Create flowables for JEXL script section.
 
     Args:
-        scripts: List of (script, node_name, param_name) tuples
+        scripts: List of Script objects
         styles: ReportLab sample stylesheet
         page_width: Width of the page for sizing
 
@@ -260,9 +271,9 @@ def _create_script_section(
         backColor=PdfStyle.SCRIPT_BACK_COLOR,
     )
 
-    for idx, (script, node_name, param_name) in enumerate(scripts, 1):
+    for idx, script in enumerate(scripts, 1):
         # Create heading with background
-        heading_text = f"<b>{node_name}</b> | {param_name}"
+        heading_text = f"<b>{script.node_name}</b> | {script.param_name}"
         heading = Paragraph(heading_text, styles["Heading3"])
 
         # Create table with background for heading
@@ -270,14 +281,30 @@ def _create_script_section(
         heading_table.setStyle(
             TableStyle(
                 [
-                    ("BACKGROUND", (0, 0), (-1, -1),
-                     PdfStyle.SCRIPT_HEADING_BG_COLOR),
-                    ("TOPPADDING", (0, 0), (-1, -1),
-                     PdfStyle.SCRIPT_HEADING_TOP_PADDING),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1),
-                     PdfStyle.SCRIPT_HEADING_BOTTOM_PADDING),
-                    ("LEFTPADDING", (0, 0), (-1, -1),
-                     PdfStyle.SCRIPT_HEADING_LEFT_PADDING),
+                    (
+                        "BACKGROUND",
+                        (0, 0),
+                        (-1, -1),
+                        PdfStyle.SCRIPT_HEADING_BG_COLOR,
+                    ),
+                    (
+                        "TOPPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        PdfStyle.SCRIPT_HEADING_TOP_PADDING,
+                    ),
+                    (
+                        "BOTTOMPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        PdfStyle.SCRIPT_HEADING_BOTTOM_PADDING,
+                    ),
+                    (
+                        "LEFTPADDING",
+                        (0, 0),
+                        (-1, -1),
+                        PdfStyle.SCRIPT_HEADING_LEFT_PADDING,
+                    ),
                 ]
             )
         )
@@ -285,7 +312,7 @@ def _create_script_section(
         flowables.append(Spacer(1, PdfStyle.SPACER_SMALL))
 
         # Add script content with border (can flow across pages)
-        flowables.append(Preformatted(script, script_style))
+        flowables.append(Preformatted(script.text, script_style))
         flowables.append(Spacer(1, PdfStyle.SPACER_XLARGE))
 
     return flowables
@@ -317,16 +344,14 @@ def make(pdf_path: str, data: PdfData) -> None:
             data.png_file,
             width=page_width,
             height=page_width * PdfStyle.DIAGRAM_HEIGHT_RATIO,
-            kind="proportional"
+            kind="proportional",
         )
     )
     body.append(Spacer(1, PdfStyle.SPACER_LARGE))
 
     # Branch conditions table (if any)
     if data.branch_conditions:
-        body.append(
-            Paragraph("<b>Branch Conditions</b>", styles["Heading2"])
-        )
+        body.append(Paragraph("<b>Branch Conditions</b>", styles["Heading2"]))
         body.append(Spacer(1, PdfStyle.SPACER_MEDIUM))
         body.append(_create_condition_table(data.branch_conditions))
         body.append(Spacer(1, PdfStyle.SPACER_LARGE))
@@ -335,8 +360,7 @@ def make(pdf_path: str, data: PdfData) -> None:
     if data.nodes:
         body.append(
             Paragraph(
-                "<b>Nodes (Activities and Tasks)</b>",
-                styles["Heading2"]
+                "<b>Nodes (Activities and Tasks)</b>", styles["Heading2"]
             )
         )
         body.append(Spacer(1, PdfStyle.SPACER_MEDIUM))
@@ -354,8 +378,8 @@ def make(pdf_path: str, data: PdfData) -> None:
     if data.jexl_scripts:
         body.append(Paragraph("<b>JEXL Scripts</b>", styles["Heading2"]))
         body.append(Spacer(1, PdfStyle.SPACER_MEDIUM))
-        body.extend(_create_script_section(
-            data.jexl_scripts, styles, page_width
-        ))
+        body.extend(
+            _create_script_section(data.jexl_scripts, styles, page_width)
+        )
 
     doc.build(body)

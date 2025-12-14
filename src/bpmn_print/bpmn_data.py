@@ -42,10 +42,6 @@ class Node:
     type: str
     target: str
 
-    def __iter__(self):
-        """Allow tuple unpacking for backward compatibility."""
-        return iter((self.name, self.type, self.target))
-
 
 @dataclass
 class Parameter:
@@ -65,12 +61,6 @@ class Parameter:
     value: str
     has_script: bool
 
-    def __iter__(self):
-        """Allow tuple unpacking for backward compatibility."""
-        return iter(
-            (self.node_name, self.param_name, self.value, self.has_script)
-        )
-
 
 @dataclass
 class Script:
@@ -80,27 +70,17 @@ class Script:
     node_name: str
     param_name: str
 
-    def __iter__(self):
-        """Allow tuple unpacking for backward compatibility."""
-        return iter((self.text, self.node_name, self.param_name))
-
 
 @dataclass
 class BpmnExtractResult:
     """Result of BPMN data extraction.
 
     Contains all nodes, parameters, and scripts extracted from a BPMN XML file.
-    This dataclass supports tuple unpacking for backward compatibility:
-        nodes, parameters, scripts = extract(xml_file)
     """
 
     nodes: List[Node]
     parameters: List[Parameter]
     scripts: List[Script]
-
-    def __iter__(self):
-        """Allow tuple unpacking for backward compatibility."""
-        return iter((self.nodes, self.parameters, self.scripts))
 
 
 def find_parent_with_id(element: _Element) -> str:
@@ -380,8 +360,7 @@ def extract(context: BpmnContext) -> BpmnExtractResult:
         context: BpmnContext containing parsed XML root and ID-to-name mapping
 
     Returns:
-        BpmnExtractResult containing nodes, parameters, and scripts.
-        Supports tuple unpacking: (nodes, parameters, scripts)
+        BpmnExtractResult containing nodes, parameters, and scripts
     """
     root = context.root
     id_to_name = context.id_to_name
