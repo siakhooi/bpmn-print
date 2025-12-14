@@ -22,11 +22,6 @@ from reportlab.lib.colors import Color
 
 
 class PdfStyle:
-    """Styling constants for PDF generation.
-
-    This class centralizes all styling values used in PDF generation,
-    making them easy to customize without modifying the rendering code.
-    """
 
     # Document margins
     MARGIN_LEFT = 10 * mm
@@ -116,16 +111,6 @@ class PdfData:
 
 
 def _create_standard_table_style(bg_color: Color) -> TableStyle:
-    """Create standard table style with configurable background color.
-
-    This eliminates duplication of table styling across different table types.
-
-    Args:
-        bg_color: Background color for data rows (header color is fixed)
-
-    Returns:
-        TableStyle with standard formatting
-    """
     return TableStyle(
         [
             ("BACKGROUND", (0, 0), (-1, 0), PdfStyle.HEADER_BG_COLOR),
@@ -149,14 +134,7 @@ def _create_standard_table_style(bg_color: Color) -> TableStyle:
 
 
 def _create_condition_table(conditions: List) -> Table:
-    """Create a table for branch conditions.
 
-    Args:
-        conditions: List of (num, source, target, condition) tuples
-
-    Returns:
-        Styled Table object
-    """
     # Create table data
     table_data = [["#", "Condition"]]
     for cond in conditions:
@@ -177,14 +155,7 @@ def _create_condition_table(conditions: List) -> Table:
 
 
 def _create_node_table(nodes: List) -> Table:
-    """Create a table for BPMN nodes (activities and tasks).
 
-    Args:
-        nodes: List of Node objects
-
-    Returns:
-        Styled Table object
-    """
     # Create table data
     table_data = [["Node Name", "Type", "Called Element / Class"]]
     for node in nodes:
@@ -205,14 +176,7 @@ def _create_node_table(nodes: List) -> Table:
 
 
 def _create_parameter_table(parameters: List) -> Table:
-    """Create a table for input parameters.
 
-    Args:
-        parameters: List of Parameter objects
-
-    Returns:
-        Styled Table object
-    """
     # Create table data
     table_data = [["Node Name", "Parameter Name", "Value"]]
     for param in parameters:
@@ -271,7 +235,7 @@ def _create_script_section(
         backColor=PdfStyle.SCRIPT_BACK_COLOR,
     )
 
-    for idx, script in enumerate(scripts, 1):
+    for _, script in enumerate(scripts, 1):
         # Create heading with background
         heading_text = f"<b>{script.node_name}</b> | {script.param_name}"
         heading = Paragraph(heading_text, styles["Heading3"])
