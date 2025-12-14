@@ -1,4 +1,7 @@
+from unittest.mock import patch
+
 from bpmn_print.cli import run
+from bpmn_print.errors import BpmnRenderError, BpmnFileError
 
 import pytest
 
@@ -58,3 +61,156 @@ def test_run_wrong_options(monkeypatch, capsys, options):
 
     captured = capsys.readouterr()
     assert captured.err == expected_output
+
+
+@patch("bpmn_print.cli.pretty_print")
+def test_run_with_valid_arguments(mock_pretty_print, monkeypatch):
+    """Test run with valid input and output folders."""
+    monkeypatch.setattr(
+        "sys.argv",
+        ["bpmn-print", "/input", "/output"],
+    )
+
+    run()
+
+    mock_pretty_print.assert_called_once_with("/input", "/output", False)
+
+
+@patch("bpmn_print.cli.pretty_print")
+def test_run_with_keep_flag_short(mock_pretty_print, monkeypatch):
+    """Test run with -k flag to keep PNG files."""
+    monkeypatch.setattr(
+        "sys.argv",
+        ["bpmn-print", "-k", "/input", "/output"],
+    )
+
+    run()
+
+    mock_pretty_print.assert_called_once_with("/input", "/output", True)
+
+
+@patch("bpmn_print.cli.pretty_print")
+def test_run_with_keep_flag_long(mock_pretty_print, monkeypatch):
+    """Test run with --keep flag to keep PNG files."""
+    monkeypatch.setattr(
+        "sys.argv",
+        ["bpmn-print", "--keep", "/input", "/output"],
+    )
+
+    run()
+
+    mock_pretty_print.assert_called_once_with("/input", "/output", True)
+
+
+@patch("bpmn_print.cli.console")
+@patch("bpmn_print.cli.pretty_print")
+def test_run_handles_bpmn_error(mock_pretty_print, mock_console, monkeypatch):
+    """Test that BpmnError is caught and exits with code 2."""
+    monkeypatch.setattr(
+        "sys.argv",
+        ["bpmn-print", "/input", "/output"],
+    )
+
+    error = BpmnRenderError("Test error")
+    mock_pretty_print.side_effect = error
+
+    with pytest.raises(SystemExit) as exc_info:
+        run()
+
+    assert exc_info.value.code == 2
+    mock_console.error.assert_called_once_with(error)
+
+
+@patch("bpmn_print.cli.console")
+@patch("bpmn_print.cli.pretty_print")
+def test_run_handles_bpmn_file_error(
+    mock_pretty_print, mock_console, monkeypatch
+):
+    """Test that BpmnFileError is caught and exits with code 2."""
+    monkeypatch.setattr(
+        "sys.argv",
+        ["bpmn-print", "/input", "/output"],
+    )
+
+    error = BpmnFileError("File not found")
+    mock_pretty_print.side_effect = error
+
+    with pytest.raises(SystemExit) as exc_info:
+        run()
+
+    assert exc_info.value.code == 2
+    mock_console.error.assert_called_once_with(error)
+
+
+@patch("bpmn_print.cli.console")
+@patch("bpmn_print.cli.pretty_print")
+def test_run_handles_os_error(mock_pretty_print, mock_console, monkeypatch):
+    """Test that OSError is caught and exits with code 2."""
+    monkeypatch.setattr(
+        "sys.argv",
+        ["bpmn-print", "/input", "/output"],
+    )
+
+    os_error = OSError("Permission denied")
+    mock_pretty_print.side_effect = os_error
+
+    with pytest.raises(SystemExit) as exc_info:
+        run()
+
+    assert exc_info.value.code == 2
+    # Check error message contains "File system error"
+    call_args = mock_console.error.call_args[0][0]
+    assert "File system error" in str(call_args)
+
+
+@patch("bpmn_print.cli.console")
+@patch("bpmn_print.cli.pretty_print")
+def test_run_handles_unexpected_error(
+    mock_pretty_print, mock_console, monkeypatch
+):
+    """Test that unexpected errors are caught and exit with code 3."""
+    monkeypatch.setattr(
+        "sys.argv",
+        ["bpmn-print", "/input", "/output"],
+    )
+
+    unexpected_error = RuntimeError("Unexpected failure")
+    mock_pretty_print.side_effect = unexpected_error
+
+    with pytest.raises(SystemExit) as exc_info:
+        run()
+
+    assert exc_info.value.code == 3
+    # Check error message contains "Unexpected error"
+    call_args = mock_console.error.call_args[0][0]
+    assert "Unexpected error" in str(call_args)
+
+
+def test_run_missing_required_arguments(monkeypatch, capsys):
+    """Test that missing required arguments causes exit."""
+    monkeypatch.setattr(
+        "sys.argv",
+        ["bpmn-print"],
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        run()
+
+    assert exc_info.value.code == 2
+    captured = capsys.readouterr()
+    assert "required" in captured.err.lower()
+
+
+def test_run_missing_output_folder(monkeypatch, capsys):
+    """Test that missing output folder argument causes exit."""
+    monkeypatch.setattr(
+        "sys.argv",
+        ["bpmn-print", "/input"],
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        run()
+
+    assert exc_info.value.code == 2
+    captured = capsys.readouterr()
+    assert "required" in captured.err.lower()
