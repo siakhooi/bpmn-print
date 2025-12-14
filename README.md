@@ -45,7 +45,6 @@ options:
 ![GitHub closed pull requests](https://img.shields.io/github/issues-pr-closed-raw/siakhooi/bpmn-print?logo=github)
 ![GitHub top language](https://img.shields.io/github/languages/top/siakhooi/bpmn-print?logo=github)
 ![GitHub language count](https://img.shields.io/github/languages/count/siakhooi/bpmn-print?logo=github)
-![Lines of code](https://img.shields.io/tokei/lines/github/siakhooi/bpmn-print?logo=github)
 ![GitHub repo size](https://img.shields.io/github/repo-size/siakhooi/bpmn-print?logo=github)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/siakhooi/bpmn-print?logo=github)
 
