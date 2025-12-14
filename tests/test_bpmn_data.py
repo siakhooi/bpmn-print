@@ -181,11 +181,16 @@ class TestGetElementName:
     def test_returns_name_when_present(self):
         """Test returning name attribute when present."""
         element = Mock()
-        element.get.side_effect = lambda key, default=UNKNOWN_VALUE: (
-            "Task Name"
-            if key == ATTR_NAME
-            else "task_123" if key == ATTR_ID else default
-        )
+
+        def mock_get(key, default=UNKNOWN_VALUE):
+            if key == ATTR_NAME:
+                return "Task Name"
+            elif key == ATTR_ID:
+                return "task_123"
+            else:
+                return default
+
+        element.get.side_effect = mock_get
 
         result = _get_element_name(element)
 
