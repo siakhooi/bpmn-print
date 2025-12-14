@@ -1,0 +1,4 @@
+[bandit]
+# Skip B101 (assert_used) only for test files
+# Assert statements are the standard way to write tests in pytest
+tests: B101

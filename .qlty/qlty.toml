@@ -68,6 +68,11 @@ name = "actionlint"
 [[plugin]]
 name = "bandit"
 
+[plugin.config]
+# Skip B101 (assert_used) only for test files
+# Assert is the correct way to write pytest tests
+tests = ["B101"]
+
 [[plugin]]
 name = "osv-scanner"
 
