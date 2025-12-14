@@ -7,6 +7,7 @@ from . import bpmn_diagram
 from . import bpmn_data
 from . import pdf
 from .errors import BpmnRenderError, BpmnFileError
+from .xml_utils import create_bpmn_context
 
 # File extension constants
 BPMN_EXTENSION = ".bpmn"
@@ -40,11 +41,14 @@ def convert_bpmn_to_pdf(config: ConversionConfig) -> None:
     Args:
         config: ConversionConfig with all file paths and conversion options
     """
-    # 1. Render diagram to PNG
-    branch_conditions = bpmn_diagram.render(config.bpmn_file, config.png_file)
+    # Parse XML once and create shared context
+    context = create_bpmn_context(config.bpmn_file)
 
-    # 2. Extract data
-    nodes, parameters, jexl_scripts = bpmn_data.extract(config.bpmn_file)
+    # 1. Render diagram to PNG using the shared context
+    branch_conditions = bpmn_diagram.render(context, config.png_file)
+
+    # 2. Extract data using the same shared context (avoids re-parsing)
+    nodes, parameters, jexl_scripts = bpmn_data.extract(context)
 
     # 3. Create PDF with grouped data
     pdf_data = pdf.PdfData(

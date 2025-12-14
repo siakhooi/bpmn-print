@@ -7,7 +7,7 @@ from .diagram_model import BpmnDiagramModel, BpmnEdge, BpmnNode, Condition
 from .errors import BpmnRenderError
 from .node_styles import NodeStyle, NODE_TYPE_CONFIG, GraphConfig
 from .path_utils import prepare_output_path
-from .xml_utils import parse_bpmn_xml, build_id_to_name_mapping
+from .xml_utils import BpmnContext
 from .xml_constants import (
     ATTR_ID,
     ATTR_NAME,
@@ -145,10 +145,10 @@ def _validate_edge_references(
             )
 
 
-def build_model(xml_file: str) -> BpmnDiagramModel:
-    root = parse_bpmn_xml(xml_file)
+def build_model(context: BpmnContext) -> BpmnDiagramModel:
+    root = context.root
+    id_to_name = context.id_to_name
     ns = BPMN_NS
-    id_to_name = build_id_to_name_mapping(root)
 
     nodes = _extract_all_nodes(root, ns)
     node_ids = _validate_node_ids(nodes)
@@ -238,10 +238,9 @@ def render_model(model: BpmnDiagramModel, png_out: str) -> None:
         raise BpmnRenderError.render_failed(png_out, str(e)) from e
 
 
-def render(xml_file: str, png_out: str) -> List[Condition]:
-
-    # Build the model from XML (pure, no Graphviz dependencies)
-    model = build_model(xml_file)
+def render(context: BpmnContext, png_out: str) -> List[Condition]:
+    # Build the model from the context (pure, no Graphviz dependencies)
+    model = build_model(context)
 
     # Render the model to PNG
     render_model(model, png_out)

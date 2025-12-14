@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict
 
@@ -41,3 +42,16 @@ def build_id_to_name_mapping(root: _Element) -> Dict[str, str]:
         elem.get(ATTR_ID): elem.get(ATTR_NAME, elem.get(ATTR_ID))
         for elem in root.findall(XPATH_ALL_WITH_ID)
     }
+
+
+@dataclass
+class BpmnContext:
+
+    root: _Element
+    id_to_name: Dict[str, str]
+
+
+def create_bpmn_context(xml_file: str) -> BpmnContext:
+    root = parse_bpmn_xml(xml_file)
+    id_to_name = build_id_to_name_mapping(root)
+    return BpmnContext(root=root, id_to_name=id_to_name)

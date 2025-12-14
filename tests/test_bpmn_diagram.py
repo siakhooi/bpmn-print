@@ -26,6 +26,7 @@ from bpmn_print.bpmn_diagram import (
 from bpmn_print.diagram_model import BpmnNode, BpmnEdge, BpmnDiagramModel
 from bpmn_print.errors import BpmnRenderError
 from bpmn_print.xml_constants import BPMN_NS
+from bpmn_print.xml_utils import create_bpmn_context
 
 
 class TestGetNodeName:
@@ -437,7 +438,8 @@ class TestBuildModel:
 </definitions>"""
             xml_file.write_text(xml_content)
 
-            model = build_model(str(xml_file))
+            context = create_bpmn_context(str(xml_file))
+            model = build_model(context)
 
             assert isinstance(model, BpmnDiagramModel)
             assert len(model.nodes) == 3
@@ -460,7 +462,8 @@ class TestBuildModel:
 </definitions>"""
             xml_file.write_text(xml_content)
 
-            model = build_model(str(xml_file))
+            context = create_bpmn_context(str(xml_file))
+            model = build_model(context)
 
             assert "Task_1" in model.id_to_name
             assert model.id_to_name["Task_1"] == "My Task"

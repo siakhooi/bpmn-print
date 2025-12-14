@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Tuple
 
 from lxml.etree import _Element
 
-from .xml_utils import parse_bpmn_xml, build_id_to_name_mapping
+from .xml_utils import BpmnContext
 from .xml_constants import (
     ATTR_ID, ATTR_NAME, ATTR_CALLED_ELEMENT,
     BPMN_NS, CAMUNDA_NS_URI,
@@ -364,25 +364,18 @@ def _extract_input_parameters(
     return parameters, scripts
 
 
-def extract(xml_file: str) -> BpmnExtractResult:
-    """Extract BPMN data from an XML file.
+def extract(context: BpmnContext) -> BpmnExtractResult:
+    """Extract BPMN data from a BpmnContext.
 
     Args:
-        xml_file: Path to the BPMN XML file
+        context: BpmnContext containing parsed XML root and ID-to-name mapping
 
     Returns:
         BpmnExtractResult containing nodes, parameters, and scripts.
         Supports tuple unpacking: (nodes, parameters, scripts)
-
-    Raises:
-        BpmnFileError: If the XML file does not exist, is not a file,
-            or cannot be read
-        BpmnParseError: If the XML file is malformed or invalid
     """
-    root = parse_bpmn_xml(xml_file)
-
-    # Build ID to name mapping
-    id_to_name = build_id_to_name_mapping(root)
+    root = context.root
+    id_to_name = context.id_to_name
 
     # Extract nodes
     nodes = []
