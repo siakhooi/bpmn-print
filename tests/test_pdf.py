@@ -14,6 +14,7 @@ from bpmn_print.pdf import (
     _create_node_table,
     _create_parameter_table,
     _create_script_section,
+    get_image_dimensions,
     make,
 )
 
@@ -112,6 +113,55 @@ class TestPdfData:
         assert len(data.nodes) == 1
         assert len(data.parameters) == 1
         assert len(data.jexl_scripts) == 1
+
+
+class TestGetImageDimensions:
+    """Tests for get_image_dimensions function."""
+
+    def test_returns_image_dimensions(self):
+        """Test that function returns correct image dimensions."""
+        # Create a temporary PNG file with known dimensions
+        with tempfile.NamedTemporaryFile(
+            suffix=".png", delete=False
+        ) as png_file:
+            png_path = png_file.name
+
+        try:
+            from PIL import Image as PILImage
+
+            # Create a 100x200 image
+            img = PILImage.new("RGB", (100, 200), color="white")
+            img.save(png_path)
+
+            width, height = get_image_dimensions(png_path)
+
+            assert width == 100
+            assert height == 200
+        finally:
+            if os.path.exists(png_path):
+                os.unlink(png_path)
+
+    def test_handles_large_dimensions(self):
+        """Test handling of large image dimensions."""
+        with tempfile.NamedTemporaryFile(
+            suffix=".png", delete=False
+        ) as png_file:
+            png_path = png_file.name
+
+        try:
+            from PIL import Image as PILImage
+
+            # Create a large image
+            img = PILImage.new("RGB", (3000, 1500), color="white")
+            img.save(png_path)
+
+            width, height = get_image_dimensions(png_path)
+
+            assert width == 3000
+            assert height == 1500
+        finally:
+            if os.path.exists(png_path):
+                os.unlink(png_path)
 
 
 class TestCreateStandardTableStyle:
@@ -401,8 +451,10 @@ class TestMake:
     """Tests for make function."""
 
     @patch("bpmn_print.pdf.SimpleDocTemplate")
-    def test_creates_pdf_document(self, mock_doc_class):
+    @patch("bpmn_print.pdf.get_image_dimensions")
+    def test_creates_pdf_document(self, mock_dims, mock_doc_class):
         """Test that PDF document is created."""
+        mock_dims.return_value = (1000, 800)  # Small image, portrait mode
         mock_doc = MagicMock()
         mock_doc_class.return_value = mock_doc
 
@@ -435,8 +487,10 @@ class TestMake:
                 os.unlink(png_path)
 
     @patch("bpmn_print.pdf.SimpleDocTemplate")
-    def test_includes_all_sections(self, mock_doc_class):
+    @patch("bpmn_print.pdf.get_image_dimensions")
+    def test_includes_all_sections(self, mock_dims, mock_doc_class):
         """Test that all sections are included when data is provided."""
+        mock_dims.return_value = (1500, 1000)  # Small image
         mock_doc = MagicMock()
         mock_doc_class.return_value = mock_doc
 
@@ -479,8 +533,10 @@ class TestMake:
                 os.unlink(png_path)
 
     @patch("bpmn_print.pdf.SimpleDocTemplate")
-    def test_handles_empty_data(self, mock_doc_class):
+    @patch("bpmn_print.pdf.get_image_dimensions")
+    def test_handles_empty_data(self, mock_dims, mock_doc_class):
         """Test that make handles empty data sections."""
+        mock_dims.return_value = (800, 600)
         mock_doc = MagicMock()
         mock_doc_class.return_value = mock_doc
 
@@ -507,6 +563,80 @@ class TestMake:
 
             # Should still build successfully with just diagram
             mock_doc.build.assert_called_once()
+        finally:
+            if os.path.exists(png_path):
+                os.unlink(png_path)
+
+    @patch("bpmn_print.pdf.BaseDocTemplate")
+    @patch("bpmn_print.pdf.get_image_dimensions")
+    def test_uses_landscape_for_wide_diagrams(self, mock_dims, mock_doc_class):
+        """Test that wide diagrams trigger landscape layout."""
+        mock_dims.return_value = (3000, 1500)  # Wide image > 2200
+        mock_doc = MagicMock()
+        mock_doc_class.return_value = mock_doc
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".png", delete=False
+        ) as png_file:
+            png_path = png_file.name
+            png_file.write(
+                b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
+                b"\x00\x00\x00\x01\x00\x00\x00\x01"
+                b"\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
+            )
+
+        try:
+            data = PdfData(
+                png_file=png_path,
+                branch_conditions=[],
+                nodes=[],
+                parameters=[],
+                jexl_scripts=[],
+            )
+
+            make("test.pdf", data, landscape_threshold=2200)
+
+            # Should use BaseDocTemplate for mixed orientation
+            mock_doc_class.assert_called_once()
+            mock_doc.addPageTemplates.assert_called_once()
+            mock_doc.build.assert_called_once()
+        finally:
+            if os.path.exists(png_path):
+                os.unlink(png_path)
+
+    @patch("bpmn_print.pdf.BaseDocTemplate")
+    @patch("bpmn_print.pdf.get_image_dimensions")
+    def test_custom_threshold(self, mock_dims, mock_doc_class):
+        """Test using custom landscape threshold."""
+        mock_dims.return_value = (1500, 1000)  # Below default threshold
+        mock_doc = MagicMock()
+        mock_doc_class.return_value = mock_doc
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".png", delete=False
+        ) as png_file:
+            png_path = png_file.name
+            png_file.write(
+                b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
+                b"\x00\x00\x00\x01\x00\x00\x00\x01"
+                b"\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
+            )
+
+        try:
+            data = PdfData(
+                png_file=png_path,
+                branch_conditions=[],
+                nodes=[],
+                parameters=[],
+                jexl_scripts=[],
+            )
+
+            make("test.pdf", data, landscape_threshold=1000)
+
+            # Should use landscape since 1500 > 1000
+            # Uses BaseDocTemplate for landscape
+            mock_doc_class.assert_called_once()
+            mock_doc.addPageTemplates.assert_called_once()
         finally:
             if os.path.exists(png_path):
                 os.unlink(png_path)

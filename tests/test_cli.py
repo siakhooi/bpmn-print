@@ -73,7 +73,7 @@ def test_run_with_valid_arguments(mock_pretty_print, monkeypatch):
 
     run()
 
-    mock_pretty_print.assert_called_once_with("/input", "/output", False)
+    mock_pretty_print.assert_called_once_with("/input", "/output", False, 2200)
 
 
 @patch("bpmn_print.cli.pretty_print")
@@ -86,7 +86,7 @@ def test_run_with_keep_flag_short(mock_pretty_print, monkeypatch):
 
     run()
 
-    mock_pretty_print.assert_called_once_with("/input", "/output", True)
+    mock_pretty_print.assert_called_once_with("/input", "/output", True, 2200)
 
 
 @patch("bpmn_print.cli.pretty_print")
@@ -99,7 +99,52 @@ def test_run_with_keep_flag_long(mock_pretty_print, monkeypatch):
 
     run()
 
-    mock_pretty_print.assert_called_once_with("/input", "/output", True)
+    mock_pretty_print.assert_called_once_with("/input", "/output", True, 2200)
+
+
+@patch("bpmn_print.cli.pretty_print")
+def test_run_with_threshold_flag_short(mock_pretty_print, monkeypatch):
+    """Test run with -t flag for custom threshold."""
+    monkeypatch.setattr(
+        "sys.argv",
+        ["bpmn-print", "-t", "3000", "/input", "/output"],
+    )
+
+    run()
+
+    mock_pretty_print.assert_called_once_with("/input", "/output", False, 3000)
+
+
+@patch("bpmn_print.cli.pretty_print")
+def test_run_with_threshold_flag_long(mock_pretty_print, monkeypatch):
+    """Test run with --diagram-landscape-threshold flag."""
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "bpmn-print",
+            "--diagram-landscape-threshold",
+            "2500",
+            "/input",
+            "/output",
+        ],
+    )
+
+    run()
+
+    mock_pretty_print.assert_called_once_with("/input", "/output", False, 2500)
+
+
+@patch("bpmn_print.cli.pretty_print")
+def test_run_with_all_flags(mock_pretty_print, monkeypatch):
+    """Test run with both keep and threshold flags."""
+    monkeypatch.setattr(
+        "sys.argv",
+        ["bpmn-print", "-k", "-t", "1800", "/input", "/output"],
+    )
+
+    run()
+
+    mock_pretty_print.assert_called_once_with("/input", "/output", True, 1800)
 
 
 @patch("bpmn_print.cli.console")

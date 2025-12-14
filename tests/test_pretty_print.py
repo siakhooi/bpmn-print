@@ -31,6 +31,7 @@ class TestConversionConfig:
         assert config.pdf_path == "output.pdf"
         assert config.png_file == "diagram.png"
         assert config.keep_png is False
+        assert config.landscape_threshold == 2200  # default value
 
     def test_config_with_keep_png(self):
         """Test config with keep_png set to True."""
@@ -52,6 +53,17 @@ class TestConversionConfig:
         )
 
         assert config.keep_png is False
+
+    def test_config_with_custom_threshold(self):
+        """Test config with custom landscape threshold."""
+        config = ConversionConfig(
+            bpmn_file="input.bpmn",
+            pdf_path="output.pdf",
+            png_file="diagram.png",
+            landscape_threshold=3000,
+        )
+
+        assert config.landscape_threshold == 3000
 
 
 class TestConvertBpmnToPdf:

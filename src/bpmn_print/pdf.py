@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Tuple
 
+from PIL import Image as PILImage
 from reportlab.platypus import (
     SimpleDocTemplate,
     Image,
@@ -9,16 +10,23 @@ from reportlab.platypus import (
     Table,
     TableStyle,
     Paragraph,
+    PageBreak,
+    NextPageTemplate,
 )
 from reportlab.lib.styles import (
     getSampleStyleSheet,
     ParagraphStyle,
     StyleSheet1,
 )
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.units import mm
 from reportlab.lib import colors
 from reportlab.lib.colors import Color
+from reportlab.platypus.doctemplate import (
+    BaseDocTemplate,
+    PageTemplate,
+    Frame,
+)
 
 
 class PdfStyle:
@@ -108,6 +116,19 @@ class PdfData:
     nodes: List
     parameters: List
     jexl_scripts: List
+
+
+def get_image_dimensions(image_path: str) -> Tuple[int, int]:
+    """Get the width and height of a PNG image.
+
+    Args:
+        image_path: Path to the image file
+
+    Returns:
+        Tuple of (width, height) in pixels
+    """
+    with PILImage.open(image_path) as img:
+        return img.size
 
 
 def _create_standard_table_style(bg_color: Color) -> TableStyle:
@@ -282,27 +303,74 @@ def _create_script_section(
     return flowables
 
 
-def make(pdf_path: str, data: PdfData) -> None:
+def make(
+    pdf_path: str, data: PdfData, landscape_threshold: int = 2200
+) -> None:
     """Generate a PDF document from BPMN data.
 
     Args:
         pdf_path: Path where the PDF file will be saved
         data: PdfData container with all BPMN information to render
+        landscape_threshold: Width in pixels above which diagram
+            gets landscape page
     """
-    doc = SimpleDocTemplate(
-        pdf_path,
-        pagesize=A4,
-        leftMargin=PdfStyle.MARGIN_LEFT,
-        rightMargin=PdfStyle.MARGIN_RIGHT,
-        topMargin=PdfStyle.MARGIN_TOP,
-        bottomMargin=PdfStyle.MARGIN_BOTTOM,
-    )
+    # Determine if diagram should be on landscape page
+    img_width, _ = get_image_dimensions(data.png_file)
+    use_landscape = img_width > landscape_threshold
+
+    if use_landscape:
+        # Use BaseDocTemplate for mixed orientation pages
+        doc = BaseDocTemplate(pdf_path)
+
+        # Define landscape template for diagram
+        landscape_frame = Frame(
+            PdfStyle.MARGIN_LEFT,
+            PdfStyle.MARGIN_BOTTOM,
+            landscape(A4)[0] - PdfStyle.MARGIN_LEFT - PdfStyle.MARGIN_RIGHT,
+            landscape(A4)[1] - PdfStyle.MARGIN_TOP - PdfStyle.MARGIN_BOTTOM,
+            id="landscape_frame",
+        )
+        landscape_template = PageTemplate(
+            id="Landscape",
+            frames=[landscape_frame],
+            pagesize=landscape(A4),
+        )
+
+        # Define portrait template for content
+        portrait_frame = Frame(
+            PdfStyle.MARGIN_LEFT,
+            PdfStyle.MARGIN_BOTTOM,
+            A4[0] - PdfStyle.MARGIN_LEFT - PdfStyle.MARGIN_RIGHT,
+            A4[1] - PdfStyle.MARGIN_TOP - PdfStyle.MARGIN_BOTTOM,
+            id="portrait_frame",
+        )
+        portrait_template = PageTemplate(
+            id="Portrait", frames=[portrait_frame], pagesize=A4
+        )
+
+        doc.addPageTemplates([landscape_template, portrait_template])
+    else:
+        # Standard portrait layout
+        doc = SimpleDocTemplate(
+            pdf_path,
+            pagesize=A4,
+            leftMargin=PdfStyle.MARGIN_LEFT,
+            rightMargin=PdfStyle.MARGIN_RIGHT,
+            topMargin=PdfStyle.MARGIN_TOP,
+            bottomMargin=PdfStyle.MARGIN_BOTTOM,
+        )
 
     styles = getSampleStyleSheet()
     body = []
 
     # Diagram (fit to page width, limit height to avoid overflow)
-    page_width = A4[0] - PdfStyle.MARGIN_LEFT - PdfStyle.MARGIN_RIGHT
+    if use_landscape:
+        page_width = (
+            landscape(A4)[0] - PdfStyle.MARGIN_LEFT - PdfStyle.MARGIN_RIGHT
+        )
+    else:
+        page_width = A4[0] - PdfStyle.MARGIN_LEFT - PdfStyle.MARGIN_RIGHT
+
     body.append(
         Image(
             data.png_file,
@@ -311,6 +379,14 @@ def make(pdf_path: str, data: PdfData) -> None:
             kind="proportional",
         )
     )
+
+    if use_landscape:
+        # Switch to portrait template for remaining content
+        body.append(NextPageTemplate("Portrait"))
+        body.append(PageBreak())
+        # Update page width for portrait layout
+        page_width = A4[0] - PdfStyle.MARGIN_LEFT - PdfStyle.MARGIN_RIGHT
+
     body.append(Spacer(1, PdfStyle.SPACER_LARGE))
 
     # Branch conditions table (if any)

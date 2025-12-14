@@ -1,12 +1,14 @@
-usage: bpmn-print [-h] [-v] [-k] input_folder output_folder
+usage: bpmn-print [-h] [-v] [-k] [-t PIXELS] input_folder output_folder
 
 Print BPMN workflow for developer readings
 
 positional arguments:
-  input_folder   input folder
-  output_folder  output folder
+  input_folder          input folder
+  output_folder         output folder
 
 options:
-  -h, --help     show this help message and exit
-  -v, --version  show program's version number and exit
-  -k, --keep     keep PNG files after PDF generation
+  -h, --help            show this help message and exit
+  -v, --version         show program's version number and exit
+  -k, --keep            keep PNG files after PDF generation
+  -t PIXELS, --diagram-landscape-threshold PIXELS
+                        width threshold in pixels for landscape diagram layout (default: 2200)

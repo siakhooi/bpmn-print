@@ -27,12 +27,14 @@ class ConversionConfig:
         pdf_path: Path to the output PDF file
         png_file: Path to the intermediate PNG file for the diagram
         keep_png: Whether to keep the PNG file after PDF generation
+        landscape_threshold: Width threshold in pixels for landscape layout
     """
 
     bpmn_file: str
     pdf_path: str
     png_file: str
     keep_png: bool = False
+    landscape_threshold: int = 2200
 
 
 def convert_bpmn_to_pdf(config: ConversionConfig) -> None:
@@ -59,7 +61,7 @@ def convert_bpmn_to_pdf(config: ConversionConfig) -> None:
         parameters=result.parameters,
         jexl_scripts=result.scripts,
     )
-    pdf.make(config.pdf_path, pdf_data)
+    pdf.make(config.pdf_path, pdf_data, config.landscape_threshold)
 
     # 4. Remove PNG file if not keeping it
     if not config.keep_png and os.path.exists(config.png_file):
@@ -72,7 +74,10 @@ def convert_bpmn_to_pdf(config: ConversionConfig) -> None:
 
 
 def pretty_print(
-    input_folder: str, output_folder: str, keep_png: bool = False
+    input_folder: str,
+    output_folder: str,
+    keep_png: bool = False,
+    landscape_threshold: int = 2200,
 ) -> None:
     output_path = Path(output_folder)
     # Create output folder with error handling
@@ -107,6 +112,7 @@ def pretty_print(
             pdf_path=str(dest_pdf_path),
             png_file=str(png_file),
             keep_png=keep_png,
+            landscape_threshold=landscape_threshold,
         )
         convert_bpmn_to_pdf(config)
         console.info(f"✓ Generated {dest_pdf_path}")

@@ -23,13 +23,29 @@ def run() -> None:
         action="store_true",
         help="keep PNG files after PDF generation",
     )
+    parser.add_argument(
+        "-t",
+        "--diagram-landscape-threshold",
+        type=int,
+        default=2200,
+        metavar="PIXELS",
+        help=(
+            "width threshold in pixels for landscape diagram layout "
+            "(default: 2200)"
+        ),
+    )
     parser.add_argument("input_folder", help="input folder")
     parser.add_argument("output_folder", help="output folder")
 
     args = parser.parse_args()
 
     try:
-        pretty_print(args.input_folder, args.output_folder, args.keep)
+        pretty_print(
+            args.input_folder,
+            args.output_folder,
+            args.keep,
+            args.diagram_landscape_threshold,
+        )
     except BpmnError as e:
         # Catch all BPMN-specific errors
         console.error(e)
