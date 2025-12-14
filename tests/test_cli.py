@@ -22,7 +22,11 @@ def test_run_help(monkeypatch, capsys, option_help):
         expected_output = f.read()
 
     captured = capsys.readouterr()
-    assert captured.out == expected_output
+    # Python 3.13+ changed argparse format: "-t, --opt" vs "-t META, --opt"
+    # Normalize both formats for comparison
+    actual = captured.out.replace("-t PIXELS,", "-t,")
+    expected = expected_output.replace("-t PIXELS,", "-t,")
+    assert actual == expected
 
 
 @pytest.mark.parametrize("option_version", ["-v", "--version"])
