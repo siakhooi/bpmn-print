@@ -6,32 +6,38 @@ from lxml.etree import _Element
 
 from .xml_utils import BpmnContext
 from .xml_constants import (
-    ATTR_ID, ATTR_NAME, ATTR_CALLED_ELEMENT,
-    BPMN_NS, CAMUNDA_NS_URI,
-    XPATH_CALL_ACTIVITY, XPATH_SERVICE_TASK,
-    XPATH_CAMUNDA_SCRIPT, XPATH_CAMUNDA_INPUT_PARAMETER
+    ATTR_ID,
+    ATTR_NAME,
+    ATTR_CALLED_ELEMENT,
+    BPMN_NS,
+    CAMUNDA_NS_URI,
+    XPATH_CALL_ACTIVITY,
+    XPATH_SERVICE_TASK,
+    XPATH_CAMUNDA_SCRIPT,
+    XPATH_CAMUNDA_INPUT_PARAMETER,
 )
 
 # Camunda-specific attribute using namespace URI
-CAMUNDA_CLASS_ATTR = f'{{{CAMUNDA_NS_URI}}}class'
+CAMUNDA_CLASS_ATTR = f"{{{CAMUNDA_NS_URI}}}class"
 
-UNKNOWN_VALUE = 'unknown'
-DEFAULT_SCRIPT_NAME = 'script'
-DEFAULT_PARAM_NAME = 'inputParameter'
-JEXL_SCRIPT_PLACEHOLDER = '[See JEXL Scripts]'
+UNKNOWN_VALUE = "unknown"
+DEFAULT_SCRIPT_NAME = "script"
+DEFAULT_PARAM_NAME = "inputParameter"
+JEXL_SCRIPT_PLACEHOLDER = "[See JEXL Scripts]"
 
 # JEXL expression pattern - matches both #{ } and ${ } style expressions
 # Compiled at module level for efficiency
-JEXL_PATTERN = re.compile(r'[#$]\{\s')
+JEXL_PATTERN = re.compile(r"[#$]\{\s")
 
 # Node type
-NODE_TYPE_CALL_ACTIVITY = 'callActivity'
-NODE_TYPE_SERVICE_TASK = 'serviceTask'
+NODE_TYPE_CALL_ACTIVITY = "callActivity"
+NODE_TYPE_SERVICE_TASK = "serviceTask"
 
 
 @dataclass
 class Node:
     """Represents a BPMN node (callActivity or serviceTask)."""
+
     name: str
     type: str
     target: str
@@ -53,6 +59,7 @@ class Parameter:
                    Reserved for future use (e.g., styling parameters with
                    scripts differently in PDF output).
     """
+
     node_name: str
     param_name: str
     value: str
@@ -60,14 +67,15 @@ class Parameter:
 
     def __iter__(self):
         """Allow tuple unpacking for backward compatibility."""
-        return iter((
-            self.node_name, self.param_name, self.value, self.has_script
-        ))
+        return iter(
+            (self.node_name, self.param_name, self.value, self.has_script)
+        )
 
 
 @dataclass
 class Script:
     """Represents a JEXL script."""
+
     text: str
     node_name: str
     param_name: str
@@ -85,6 +93,7 @@ class BpmnExtractResult:
     This dataclass supports tuple unpacking for backward compatibility:
         nodes, parameters, scripts = extract(xml_file)
     """
+
     nodes: List[Node]
     parameters: List[Parameter]
     scripts: List[Script]
@@ -100,8 +109,8 @@ def find_parent_with_id(element: _Element) -> str:
     """
     current = element
     while current is not None:
-        if 'id' in current.attrib:
-            return current.get('id')
+        if "id" in current.attrib:
+            return current.get("id")
         current = current.getparent()
     return UNKNOWN_VALUE
 
@@ -143,7 +152,7 @@ def _simplify_class_name(class_name: str) -> str:
     Returns:
         Simple class name (e.g., 'MyClass') or empty string
     """
-    return class_name.rsplit('.', 1)[-1] if class_name else ''
+    return class_name.rsplit(".", 1)[-1] if class_name else ""
 
 
 def _get_node_info(
@@ -241,7 +250,7 @@ def _create_call_activity_node(call_activity: _Element) -> Node:
     return Node(
         name=_get_element_name(call_activity),
         type=NODE_TYPE_CALL_ACTIVITY,
-        target=call_activity.get(ATTR_CALLED_ELEMENT, '')
+        target=call_activity.get(ATTR_CALLED_ELEMENT, ""),
     )
 
 
@@ -269,11 +278,11 @@ def _create_service_task_node(service_task: _Element) -> Node:
     Returns:
         Node instance with serviceTask information
     """
-    class_name = service_task.get(CAMUNDA_CLASS_ATTR, '')
+    class_name = service_task.get(CAMUNDA_CLASS_ATTR, "")
     return Node(
         name=_get_element_name(service_task),
         type=NODE_TYPE_SERVICE_TASK,
-        target=_simplify_class_name(class_name)
+        target=_simplify_class_name(class_name),
     )
 
 
@@ -330,7 +339,7 @@ def _process_single_input_parameter(
         return _process_text_content(inp.text, node_name, param_name)
 
     # Empty or no content
-    return _create_parameter(node_name, param_name, '', False), None
+    return _create_parameter(node_name, param_name, "", False), None
 
 
 def _extract_input_parameters(
