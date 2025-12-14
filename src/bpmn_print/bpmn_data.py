@@ -73,10 +73,6 @@ class Script:
 
 @dataclass
 class BpmnExtractResult:
-    """Result of BPMN data extraction.
-
-    Contains all nodes, parameters, and scripts extracted from a BPMN XML file.
-    """
 
     nodes: List[Node]
     parameters: List[Parameter]
@@ -96,30 +92,11 @@ def find_parent_with_id(element: _Element) -> str:
 
 
 def _get_element_name(element: _Element, default: str = UNKNOWN_VALUE) -> str:
-    """Get the name of an element, falling back to its ID or a default.
-
-    Args:
-        element: The XML element to get the name from
-        default: Default value if neither name nor id exists
-
-    Returns:
-        The element's name, id, or default value
-    """
+    """Get the name of an element, falling back to its ID or a default."""
     return element.get(ATTR_NAME, element.get(ATTR_ID, default))
 
 
 def _is_jexl_expression(text: str) -> bool:
-    """Check if text contains JEXL expression patterns.
-
-    This function uses a compiled regex pattern to efficiently detect
-    JEXL expressions that use either #{...} or ${...} syntax.
-
-    Args:
-        text: The text to check for JEXL patterns
-
-    Returns:
-        True if text contains JEXL expression markers (#{ or ${)
-    """
     return JEXL_PATTERN.search(text) is not None
 
 
@@ -157,37 +134,20 @@ def _get_node_info(
 def _create_parameter(
     node_name: str, param_name: str, value: str, has_script: bool
 ) -> Parameter:
-    """Create a Parameter instance.
-
-    Args:
-        node_name: Name of the node this parameter belongs to
-        param_name: Name of the parameter
-        value: Parameter value (or placeholder if has_script is True)
-        has_script: Whether this parameter has an associated script
-
-    Returns:
-        A Parameter instance
-    """
     return Parameter(node_name, param_name, value, has_script)
 
 
-def _process_script_element(
-    node_name: str, param_name: str
-) -> Tuple[Parameter, None]:
+def _process_script_element(node_name: str, param_name: str) -> Parameter:
     """Process an input parameter that contains a script element.
 
     Args:
         node_name: Name of the node this parameter belongs to
         param_name: Name of the parameter
-
-    Returns:
-        Tuple of (Parameter, None). The second element is always None
-        because standalone script elements are handled separately.
     """
     parameter = _create_parameter(
         node_name, param_name, JEXL_SCRIPT_PLACEHOLDER, True
     )
-    return parameter, None
+    return parameter
 
 
 def _process_text_content(
@@ -219,14 +179,6 @@ def _process_text_content(
 
 
 def _create_call_activity_node(call_activity: _Element) -> Node:
-    """Create a Node from a callActivity XML element.
-
-    Args:
-        call_activity: XML element representing a callActivity
-
-    Returns:
-        Node instance with callActivity information
-    """
     return Node(
         name=_get_element_name(call_activity),
         type=NODE_TYPE_CALL_ACTIVITY,
@@ -235,14 +187,6 @@ def _create_call_activity_node(call_activity: _Element) -> Node:
 
 
 def _extract_call_activities(root: _Element) -> List[Node]:
-    """Extract all callActivity nodes from the BPMN XML.
-
-    Args:
-        root: Root element of the BPMN XML tree
-
-    Returns:
-        List of Node instances for all callActivity elements
-    """
     return [
         _create_call_activity_node(call_activity)
         for call_activity in root.findall(XPATH_CALL_ACTIVITY, BPMN_NS)
@@ -250,14 +194,6 @@ def _extract_call_activities(root: _Element) -> List[Node]:
 
 
 def _create_service_task_node(service_task: _Element) -> Node:
-    """Create a Node from a serviceTask XML element.
-
-    Args:
-        service_task: XML element representing a serviceTask
-
-    Returns:
-        Node instance with serviceTask information
-    """
     class_name = service_task.get(CAMUNDA_CLASS_ATTR, "")
     return Node(
         name=_get_element_name(service_task),
@@ -267,14 +203,6 @@ def _create_service_task_node(service_task: _Element) -> Node:
 
 
 def _extract_service_tasks(root: _Element) -> List[Node]:
-    """Extract all serviceTask nodes from the BPMN XML.
-
-    Args:
-        root: Root element of the BPMN XML tree
-
-    Returns:
-        List of Node instances for all serviceTask elements
-    """
     return [
         _create_service_task_node(service_task)
         for service_task in root.findall(XPATH_SERVICE_TASK, BPMN_NS)
@@ -284,7 +212,6 @@ def _extract_service_tasks(root: _Element) -> List[Node]:
 def _extract_script_elements(
     root: _Element, id_to_name: Dict[str, str]
 ) -> List[Script]:
-    """Extract standalone script elements from the BPMN XML."""
     scripts = []
     for scr in root.findall(XPATH_CAMUNDA_SCRIPT, BPMN_NS):
         node_id = find_parent_with_id(scr)
@@ -311,7 +238,7 @@ def _process_single_input_parameter(
     script_elem = inp.find(XPATH_CAMUNDA_SCRIPT, BPMN_NS)
     if script_elem is not None:
         # Has script element - will be shown in scripts section
-        return _process_script_element(node_name, param_name)
+        return _process_script_element(node_name, param_name), None
 
     # Check if it has text content
     if inp.text:
