@@ -303,23 +303,19 @@ def _create_script_section(
     return flowables
 
 
-def make(
-    pdf_path: str, data: PdfData, landscape_threshold: int = 2200
-) -> None:
-    """Generate a PDF document from BPMN data.
+def _create_document(
+    pdf_path: str, use_landscape: bool
+) -> BaseDocTemplate | SimpleDocTemplate:
+    """Create PDF document with appropriate page templates.
 
     Args:
         pdf_path: Path where the PDF file will be saved
-        data: PdfData container with all BPMN information to render
-        landscape_threshold: Width in pixels above which diagram
-            gets landscape page
-    """
-    # Determine if diagram should be on landscape page
-    img_width, _ = get_image_dimensions(data.png_file)
-    use_landscape = img_width > landscape_threshold
+        use_landscape: Whether to use mixed landscape/portrait layout
 
+    Returns:
+        Configured document template
+    """
     if use_landscape:
-        # Use BaseDocTemplate for mixed orientation pages
         doc = BaseDocTemplate(pdf_path)
 
         # Define landscape template for diagram
@@ -360,43 +356,70 @@ def make(
             bottomMargin=PdfStyle.MARGIN_BOTTOM,
         )
 
-    styles = getSampleStyleSheet()
+    return doc
+
+
+def _get_page_width(use_landscape: bool) -> float:
+    """Calculate usable page width for content.
+
+    Args:
+        use_landscape: Whether using landscape orientation
+
+    Returns:
+        Page width in points
+    """
+    if use_landscape:
+        return landscape(A4)[0] - PdfStyle.MARGIN_LEFT - PdfStyle.MARGIN_RIGHT
+    return A4[0] - PdfStyle.MARGIN_LEFT - PdfStyle.MARGIN_RIGHT
+
+
+def _build_body(
+    data: PdfData,
+    styles: StyleSheet1,
+    use_landscape: bool,
+    initial_page_width: float,
+) -> List:
+    """Build the document body with all sections.
+
+    Args:
+        data: PdfData container with all BPMN information
+        styles: ReportLab sample stylesheet
+        use_landscape: Whether diagram is on landscape page
+        initial_page_width: Page width for diagram
+
+    Returns:
+        List of flowable elements
+    """
     body = []
 
-    # Diagram (fit to page width, limit height to avoid overflow)
-    if use_landscape:
-        page_width = (
-            landscape(A4)[0] - PdfStyle.MARGIN_LEFT - PdfStyle.MARGIN_RIGHT
-        )
-    else:
-        page_width = A4[0] - PdfStyle.MARGIN_LEFT - PdfStyle.MARGIN_RIGHT
-
+    # Diagram
     body.append(
         Image(
             data.png_file,
-            width=page_width,
-            height=page_width * PdfStyle.DIAGRAM_HEIGHT_RATIO,
+            width=initial_page_width,
+            height=initial_page_width * PdfStyle.DIAGRAM_HEIGHT_RATIO,
             kind="proportional",
         )
     )
 
+    # Switch to portrait for content if using landscape
     if use_landscape:
-        # Switch to portrait template for remaining content
         body.append(NextPageTemplate("Portrait"))
         body.append(PageBreak())
-        # Update page width for portrait layout
-        page_width = A4[0] - PdfStyle.MARGIN_LEFT - PdfStyle.MARGIN_RIGHT
+        page_width = _get_page_width(False)  # Portrait width
+    else:
+        page_width = initial_page_width
 
     body.append(Spacer(1, PdfStyle.SPACER_LARGE))
 
-    # Branch conditions table (if any)
+    # Branch conditions table
     if data.branch_conditions:
         body.append(Paragraph("<b>Branch Conditions</b>", styles["Heading2"]))
         body.append(Spacer(1, PdfStyle.SPACER_MEDIUM))
         body.append(_create_condition_table(data.branch_conditions))
         body.append(Spacer(1, PdfStyle.SPACER_LARGE))
 
-    # Nodes table (callActivity and serviceTask)
+    # Nodes table
     if data.nodes:
         body.append(
             Paragraph(
@@ -414,12 +437,38 @@ def make(
         body.append(_create_parameter_table(data.parameters))
         body.append(Spacer(1, PdfStyle.SPACER_LARGE))
 
-    # JEXL scripts (full width)
+    # JEXL scripts
     if data.jexl_scripts:
         body.append(Paragraph("<b>JEXL Scripts</b>", styles["Heading2"]))
         body.append(Spacer(1, PdfStyle.SPACER_MEDIUM))
         body.extend(
             _create_script_section(data.jexl_scripts, styles, page_width)
         )
+
+    return body
+
+
+def make(
+    pdf_path: str, data: PdfData, landscape_threshold: int = 2200
+) -> None:
+    """Generate a PDF document from BPMN data.
+
+    Args:
+        pdf_path: Path where the PDF file will be saved
+        data: PdfData container with all BPMN information to render
+        landscape_threshold: Width in pixels above which diagram
+            gets landscape page
+    """
+    # Determine layout based on diagram width
+    img_width, _ = get_image_dimensions(data.png_file)
+    use_landscape = img_width > landscape_threshold
+
+    # Create document with appropriate page templates
+    doc = _create_document(pdf_path, use_landscape)
+
+    # Build document body
+    styles = getSampleStyleSheet()
+    page_width = _get_page_width(use_landscape)
+    body = _build_body(data, styles, use_landscape, page_width)
 
     doc.build(body)
