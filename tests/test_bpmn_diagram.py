@@ -582,17 +582,24 @@ class TestRenderModel:
         self, mock_prepare_path, mock_create_graph
     ):
         """Test that model is rendered to PNG successfully."""
-        mock_graph = Mock()
-        mock_create_graph.return_value = mock_graph
-        mock_prepare_path.return_value = (Path("/tmp/output"), ".png")
+        with TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "output.png"
+            mock_graph = Mock()
+            mock_create_graph.return_value = mock_graph
+            mock_prepare_path.return_value = (
+                Path(tmpdir) / "output",
+                ".png",
+            )
 
-        model = BpmnDiagramModel(
-            nodes=[BpmnNode("task_1", "Task", "task")], edges=[], id_to_name={}
-        )
+            model = BpmnDiagramModel(
+                nodes=[BpmnNode("task_1", "Task", "task")],
+                edges=[],
+                id_to_name={},
+            )
 
-        render_model(model, "/tmp/output.png")
+            render_model(model, str(output_path))
 
-        mock_graph.render.assert_called_once()
+            mock_graph.render.assert_called_once()
 
     @patch("bpmn_print.bpmn_diagram._create_graph")
     @patch("bpmn_print.bpmn_diagram.prepare_output_path")
@@ -602,19 +609,24 @@ class TestRenderModel:
         """Test that appropriate error is raised when Graphviz not found."""
         import graphviz
 
-        mock_graph = Mock()
-        mock_graph.render.side_effect = graphviz.ExecutableNotFound(
-            "dot not found"
-        )
-        mock_create_graph.return_value = mock_graph
-        mock_prepare_path.return_value = (Path("/tmp/output"), ".png")
+        with TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "output.png"
+            mock_graph = Mock()
+            mock_graph.render.side_effect = graphviz.ExecutableNotFound(
+                "dot not found"
+            )
+            mock_create_graph.return_value = mock_graph
+            mock_prepare_path.return_value = (
+                Path(tmpdir) / "output",
+                ".png",
+            )
 
-        model = BpmnDiagramModel(nodes=[], edges=[], id_to_name={})
+            model = BpmnDiagramModel(nodes=[], edges=[], id_to_name={})
 
-        with pytest.raises(BpmnRenderError) as exc_info:
-            render_model(model, "/tmp/output.png")
+            with pytest.raises(BpmnRenderError) as exc_info:
+                render_model(model, str(output_path))
 
-        assert "Graphviz not installed" in str(exc_info.value)
+            assert "Graphviz not installed" in str(exc_info.value)
 
     @patch("bpmn_print.bpmn_diagram._create_graph")
     @patch("bpmn_print.bpmn_diagram.prepare_output_path")
@@ -624,21 +636,26 @@ class TestRenderModel:
         """Test that appropriate error is raised when rendering fails."""
         import graphviz
 
-        mock_graph = Mock()
-        # Create a proper CalledProcessError with correct signature:
-        # CalledProcessError(returncode, cmd, output, stderr)
-        mock_graph.render.side_effect = graphviz.CalledProcessError(
-            1, ["dot"], "stdout", "stderr"
-        )
-        mock_create_graph.return_value = mock_graph
-        mock_prepare_path.return_value = (Path("/tmp/output"), ".png")
+        with TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "output.png"
+            mock_graph = Mock()
+            # Create a proper CalledProcessError with correct signature:
+            # CalledProcessError(returncode, cmd, output, stderr)
+            mock_graph.render.side_effect = graphviz.CalledProcessError(
+                1, ["dot"], "stdout", "stderr"
+            )
+            mock_create_graph.return_value = mock_graph
+            mock_prepare_path.return_value = (
+                Path(tmpdir) / "output",
+                ".png",
+            )
 
-        model = BpmnDiagramModel(nodes=[], edges=[], id_to_name={})
+            model = BpmnDiagramModel(nodes=[], edges=[], id_to_name={})
 
-        with pytest.raises(BpmnRenderError) as exc_info:
-            render_model(model, "/tmp/output.png")
+            with pytest.raises(BpmnRenderError) as exc_info:
+                render_model(model, str(output_path))
 
-        assert "Graphviz rendering failed" in str(exc_info.value)
+            assert "Graphviz rendering failed" in str(exc_info.value)
 
     @patch("bpmn_print.bpmn_diagram._create_graph")
     @patch("bpmn_print.bpmn_diagram.prepare_output_path")
@@ -647,19 +664,24 @@ class TestRenderModel:
     ):
         """Test that generic exceptions are caught and wrapped in
         BpmnRenderError."""
-        mock_graph = Mock()
-        mock_graph.render.side_effect = RuntimeError(
-            "Unexpected error occurred"
-        )
-        mock_create_graph.return_value = mock_graph
-        mock_prepare_path.return_value = (Path("/tmp/output"), ".png")
+        with TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "output.png"
+            mock_graph = Mock()
+            mock_graph.render.side_effect = RuntimeError(
+                "Unexpected error occurred"
+            )
+            mock_create_graph.return_value = mock_graph
+            mock_prepare_path.return_value = (
+                Path(tmpdir) / "output",
+                ".png",
+            )
 
-        model = BpmnDiagramModel(nodes=[], edges=[], id_to_name={})
+            model = BpmnDiagramModel(nodes=[], edges=[], id_to_name={})
 
-        with pytest.raises(BpmnRenderError) as exc_info:
-            render_model(model, "/tmp/output.png")
+            with pytest.raises(BpmnRenderError) as exc_info:
+                render_model(model, str(output_path))
 
-        assert "Unexpected error occurred" in str(exc_info.value)
+            assert "Unexpected error occurred" in str(exc_info.value)
 
 
 class TestRender:
