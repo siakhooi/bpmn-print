@@ -1,1 +1,1 @@
-bpmn-print 0.2.0
+bpmn-print 0.3.0
