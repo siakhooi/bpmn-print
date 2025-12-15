@@ -89,7 +89,7 @@ class TestPdfData:
 
     def test_pdf_data_with_content(self):
         """Test PdfData with actual content."""
-        conditions = [Mock(num=1, expression="x > 0")]
+        conditions = [Mock(number=1, expression="x > 0")]
         nodes = [Mock(name="Task1", type="serviceTask", target="MyClass")]
         parameters = [
             Mock(
@@ -215,8 +215,8 @@ class TestCreateConditionTable:
     def test_creates_table_with_conditions(self):
         """Test creating table with condition data."""
         conditions = [
-            Mock(num=1, expression="x > 0"),
-            Mock(num=2, expression="y < 10"),
+            Mock(number=1, expression="x > 0"),
+            Mock(number=2, expression="y < 10"),
         ]
 
         table = _create_condition_table(conditions)
@@ -234,14 +234,14 @@ class TestCreateConditionTable:
 
     def test_table_includes_condition_data(self):
         """Test that condition data is included in table."""
-        conditions = [Mock(num=1, expression="x > 0")]
+        conditions = [Mock(number=1, expression="x > 0")]
         table = _create_condition_table(conditions)
 
         assert table._cellvalues[1] == ["1", "x > 0"]
 
     def test_table_has_correct_column_widths(self):
         """Test that table uses correct column widths."""
-        conditions = [Mock(num=1, expression="test")]
+        conditions = [Mock(number=1, expression="test")]
         table = _create_condition_table(conditions)
 
         expected = [
@@ -507,7 +507,7 @@ class TestMake:
         try:
             data = PdfData(
                 png_file=png_path,
-                branch_conditions=[Mock(num=1, expression="x > 0")],
+                branch_conditions=[Mock(number=1, expression="x > 0")],
                 nodes=[Mock(name="T", type="serviceTask", target="C")],
                 parameters=[
                     Mock(
