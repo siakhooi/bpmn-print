@@ -8,8 +8,6 @@
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"github.copilot",
-				"github.copilot-chat",
 				"lfm.vscode-makefile-term",
 				"ms-python.python",
 				"ms-python.debugpy",
@@ -19,8 +17,7 @@
 				"humao.rest-client",
 				"ms-vscode.live-server",
 				"redhat.vscode-yaml",
-				"tim-koehler.helm-intellisense",
-				"github.vscode-github-actions"
+				"tim-koehler.helm-intellisense"
 			]
 		}
 	},
