@@ -10,6 +10,6 @@ options:
   -h, --help            show this help message and exit
   -v, --version         show program's version number and exit
   -k, --keep            keep PNG files after PDF generation
-  -t, --diagram-landscape-threshold PIXELS
+  -t PIXELS, --diagram-landscape-threshold PIXELS
                         width threshold in pixels for landscape diagram layout
                         (default: 2200)

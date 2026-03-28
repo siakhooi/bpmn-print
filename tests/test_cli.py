@@ -1,14 +1,38 @@
 from unittest.mock import patch
+import sys
 
 from bpmn_print.cli import run
 from bpmn_print.errors import BpmnRenderError, BpmnFileError
-import os
 import pytest
 
 
 @pytest.mark.parametrize("option_help", ["-h", "--help"])
 @pytest.mark.skipif(
-    "CI" in os.environ, reason="Skip in CI due to argparse format differences"
+    sys.version_info >= (3, 13), reason="Use test_run_help for Python 3.13+"
+)
+def test_run_help_py312(monkeypatch, capsys, option_help):
+    """TODO: Remove when Python 3.12 support is dropped."""
+    monkeypatch.setattr(
+        "sys.argv",
+        ["bpmn-print", option_help],
+    )
+
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        run()
+    assert pytest_wrapped_e.type is SystemExit
+    assert pytest_wrapped_e.value.code == 0
+
+    with open("tests/expected-output/cli-help-py312.txt", "r") as f:
+        expected_output = f.read()
+
+    captured = capsys.readouterr()
+    assert captured.out == expected_output
+
+
+@pytest.mark.parametrize("option_help", ["-h", "--help"])
+@pytest.mark.skipif(
+    sys.version_info < (3, 13),
+    reason="Use test_run_help_py312 for Python < 3.13",
 )
 def test_run_help(monkeypatch, capsys, option_help):
     monkeypatch.setattr(
@@ -25,11 +49,7 @@ def test_run_help(monkeypatch, capsys, option_help):
         expected_output = f.read()
 
     captured = capsys.readouterr()
-    # Python 3.13+ changed argparse format: "-t, --opt" vs "-t META, --opt"
-    # Normalize both formats for comparison
-    actual = captured.out.replace("-t PIXELS,", "-t,")
-    expected = expected_output.replace("-t PIXELS,", "-t,")
-    assert actual == expected
+    assert captured.out == expected_output
 
 
 @pytest.mark.parametrize("option_version", ["-v", "--version"])
