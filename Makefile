@@ -39,4 +39,7 @@ commit:
 
 #svglib pillow bpmn-python
 
+fix-cert:
+	pip install pip-system-certs --trusted-host pypi.org --trusted-host files.pythonhosted.org
+
 
