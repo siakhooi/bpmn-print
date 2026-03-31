@@ -1,8 +1,7 @@
 help:
 clean:
-	rm -rf dist target coverage \
-	src/bpmn_print/__pycache__ \
-	tests/__pycache__
+	rm -rf dist target coverage .coverage \
+	src/bpmn_print/__pycache__ 	tests/__pycache__  make-all.log .pytest_cache .tox
 run:
 	poetry run bpmn-print /home/sing/.mygh/bpmn-pretty-print/intent_based_digital_content/service_specs/processes /tmp/bpmn_output
 set-version:
@@ -29,21 +28,10 @@ all: clean set-version install flake8 build tox-run
 release:
 	scripts/release.sh
 
-commit:
-	scripts/git-commit.sh
-	git push
-
-
 # system-deps:
 # 	sudo apt-get update && sudo apt-get install -y libcairo2-dev pkg-config python3-dev graphviz
 
 #svglib pillow bpmn-python
-
-fix-cert:
-	pip install pip-system-certs --trusted-host pypi.org --trusted-host files.pythonhosted.org
-
-fix-pyenv:
-	 pyenv versions --bare > .python-version
 
 tox-run:
 	tox run
